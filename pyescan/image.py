@@ -21,7 +21,8 @@ class LazyImage():
         self.loaded = False # Currently checking for _image is None
         
     def load(self, force=False):
-        print("Loaded image", self._file_location)
+        #TODO: add proper debug logging
+        #print("Loaded image", self._file_location)
         self._raw_image = Image.open(self._file_location)
         self._image = self._raw_image
         if self._color_mode:
