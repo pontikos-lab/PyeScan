@@ -13,7 +13,7 @@ def flatten_dict(dict_in, name=""):
     return dict_out
 
 # TODO: Get the bscan-level 
-def get_pe_export_summary(scans_folder, file_structure="pat/sdb", merged=True,  metadata_out=None, file_list_out=None):
+def get_pe_export_summary(scans_folder, file_structure="pat/sdb", merged=True, skip_image_level=False, metadata_out=None, file_list_out=None):
     import json
     import os
     import pandas as pd
@@ -40,30 +40,47 @@ def get_pe_export_summary(scans_folder, file_structure="pat/sdb", merged=True,  
             scan_date = metadata['exam']['scan_datetime']
             series_info = flatten_dict(metadata['series'])
 
-            images = metadata['images']['images']
+            scans = metadata['images']['images']
 
-            for i, image in enumerate(images):
-                image_data = dict()
-                image_data.update(file_structure_dict)
+            for i, scan in enumerate(scans):
+                scan_data = dict()
+                scan_data.update(file_structure_dict)
 
-                image_data['scan_uid'] = UID_path + "/" + image['source_id']
+                scan_data['scan_uid'] = UID_path + "/" + scan['source_id']
 
                 for attr in ['source_id', 'group', 'modality', 'field_of_view']:
-                    image_data[attr] = image[attr]
-                image_data['scan_number'] = i 
-                image_data['date'] = scan_date
-                image_data.update(series_info)
+                    scan_data[attr] = scan[attr]
+                scan_data['scan_number'] = i 
+                scan_data['date'] = scan_date
+                scan_data.update(series_info)
                 
                 # workaround for name collision
-                image_data['series_source_id'] = metadata['series']['source_id']
-                image_data['source_id'] = image['source_id']
+                scan_data['series_source_id'] = metadata['series']['source_id']
+                scan_data['source_id'] = scan['source_id']
                 
-                image_data['number_of_images'] = len(image['contents'])
+                scan_data['number_of_images'] = len(scan['contents'])
 
                 for attr in ['size', 'dimensions_mm', 'resolutions_mm']:
-                    image_data.update(flatten_dict(image[attr], attr))
-
-                scan_records.append(image_data)
+                    scan_data.update(flatten_dict(scan[attr], attr))
+                    
+                if skip_image_level:
+                    scan_records.append(scan_data)
+                else:
+                    images = scan['contents']
+                    for j, image in enumerate(images):
+                        image_data = dict()
+                        image_data.update(scan_data)
+                        
+                        #image_data['image_number'] = j
+                        image_data['bscan_index'] = str(j)
+                        
+                        image_data['image_capture_datetime'] = image.get('capture_datetime')
+                        image_data['image_quality_heidelberg'] = image.get('quality')
+                        
+                        if image.get('photo_locations'):
+                            locations = image['photo_locations'][0]
+                            image_data.update(flatten_dict(locations, 'bscan_location'))
+                        scan_records.append(image_data)
 
         for filename in filenames:
 
@@ -91,7 +108,9 @@ def get_pe_export_summary(scans_folder, file_structure="pat/sdb", merged=True,  
         df_files.to_csv(file_list_out, index=False)
         
     if merged:
-        df_files = df_files.merge(df_metadata, how='left', on='scan_uid')
+        merge_cols = ['scan_uid']
+        if not skip_image_level: merge_cols = merge_cols + ['bscan_index']
+        df_files = df_files.merge(df_metadata, how='left', on=merge_cols)
         return df_files
     else:
         return df_files, df_metadata

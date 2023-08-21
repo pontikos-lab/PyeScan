@@ -52,7 +52,7 @@ summarise_dataset([ROOT_DIRECTORY], structure="{pat}/{sdb}/{source_id}_{bscan_in
 ```
 Will get all files that look like `{pat}/{sdb}/{source_id}_{bscan_index:\d+}.png` (compared to the `[ROOT_DIRECTORY]`) and list them in a table with columns for `pat`, `sdb`, `source_id`, and `bscan_index` (as well as `file_path`). As you cna imagine this can be very useful for loading different types of input file structures.
 
-The other function, `get_pe_export_summary`, is similar, but traverses through a Private/CrystalEye export and dives into the metadata, producing a dataframe with a full summary of all scans/images including images (there is some data still missing, in particular the image-level metadata, but the plan is to add this at some point). This is useful to make metadata summary CSVs which can be merged with other datasets (e.g. annotations/masks) as needed 
+The other function, `get_pe_export_summary`, is similar, but traverses through a Private/CrystalEye export and dives into the metadata, producing a dataframe with a full summary of all scans/images including images (there is some data still missing, in particular the image-level metadata ~~but the plan is to add this at some point~~ is now included, but some fields are currently omitted for brevity). This is useful to make metadata summary CSVs which can be merged with other datasets (e.g. annotations/masks) as needed 
 
 
 # Explanation + Development
