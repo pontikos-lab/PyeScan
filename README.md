@@ -54,6 +54,10 @@ Will get all files that look like `{pat}/{sdb}/{source_id}_{bscan_index:\d+}.png
 
 The other function, `get_pe_export_summary`, is similar, but traverses through a Private/CrystalEye export and dives into the metadata, producing a dataframe with a full summary of all scans/images including images (there is some data still missing, in particular the image-level metadata ~~but the plan is to add this at some point~~ is now included, but some fields are currently omitted for brevity). This is useful to make metadata summary CSVs which can be merged with other datasets (e.g. annotations/masks) as needed 
 
+There are also a number of functions broken out as command line tools:
+`summarise_pe_export`,`summarise_dataset`, `run_function_on_csv`, `run_function_over_csv`, `narrow_to_wide`
+Use `[CMD] --help` to see how to use each one.
+
 
 # Explanation + Development
 
@@ -61,7 +65,7 @@ Currently PyeScan is just about laying the groundwork in order to make things ea
 
 The core object of PyeScan is the scan object which inherits from the `BaseScan` class (though some scan objects are also compositions of other BaseScan-derived instances, as well as being a `BaseScan` in their own right).
 
-These scan classes provide a standard interface for various operations, along with various helper fucntionality.
+These scan classes provide a standard interface for various operations, along with various helper functionality.
 
 A big part of how this is achieved is with `MetadataView` objects which (as the name suggests) provide a 'view' onto the raw metadata, translating from the original metadata structure (by prividing various acessor properties), while also handling managing which part of the metadata the particular scan refers to.
 
