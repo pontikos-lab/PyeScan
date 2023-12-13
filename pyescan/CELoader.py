@@ -1,9 +1,9 @@
-from pyescan.metadata import MetadataRecord
+from pyescan.core.metadata import MetadataRecord
 
-from pyescan.image import LazyImage
+from pyescan.core.image import LazyImage
 
-from pyescan.scan_enface import IRScan, FAFScan
-from pyescan.scan_oct import BScan, BScanArray, OCTScan
+from pyescan.core.scan_enface import IRScan, FAFScan
+from pyescan.core.scan_oct import BScan, BScanArray, OCTScan
 
 #TODO: Move more of the building of the actual classes elsewhere
 def load_record_from_CE(path_to_record_folder, format=None):
