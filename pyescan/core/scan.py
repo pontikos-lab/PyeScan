@@ -110,6 +110,10 @@ class SingleImageScan(BaseScan):
     def data(self):
         return self._image.data
     
+    @property
+    def shape(self):
+        return self._image.data.shape
+    
     def plot_image(self, include_annotations=False):
         raise NotImplementedError()
     

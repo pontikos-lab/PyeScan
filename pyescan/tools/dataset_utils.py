@@ -269,17 +269,6 @@ def run_function_on_dataframe(df, fn, column, threaded=True):
             outputs.append(fn(row))
         df[column] = outputs
     return df
-
-def get_mask_stats(row):
-    from PIL import Image
-    import numpy as np
-    try:
-        img = Image.open(row.file_path).convert("L")
-        width, height = img.size
-        mask = np.array(img) > 127
-        return width, height, mask.sum(), mask.any(axis=0).sum(), mask.any(axis=1).sum()
-    except FileNotFoundError as e: 
-        return None, None, 0., 0., 0.
     
 @click.command()
 @click.argument('function', type=str)
@@ -349,7 +338,7 @@ def detect_pivot_cols(df, pivot_col, identifier_cols):
     index_cols = list()
     for col in df.columns:
         if col in identifier_cols: continue # skip
-        if (df.groupby(identifier_cols)[col].nunique() == 1).all():
+        if (df.groupby(identifier_cols)[col].nunique() <= 1).all():
             index_cols.append(col)
     index_cols = identifier_cols + index_cols
 

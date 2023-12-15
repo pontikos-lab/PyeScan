@@ -1,61 +1,7 @@
-"""
-
-HEYEX example format (output of privateEye)
-
-OCT:
-- patient
-- exam
-- series
-- images
-  - Image 0
-    - Source ID
-    - modality
-    - group
-    - size
-    - ...
-    - contents
-    - extras
-    - contours
-  - Image 1
-    - Source ID
-    - modality
-    - group
-    - size
-    - ...
-    - contents
-      - 1
-      - 2
-      - ...
-    - extras
-    - contours
-- debug
-- parser version
-
-Proposed Taxonomy:
-0. (Patient)
-1. Record - i.e. a single sdb/sda/e2e file
-2. Scan group (usually OCT + enface, there may be just one of these per record, but sometimes multiple scan-groups are captured in a single record in which case they are given different group ids)
-3. Scan (in the privateeye/crystaleye this is represented by each 'image' entry)
-4. Image (usually 1 per scan, except for OCT scans whre there are multiple)
-
-
-Scan / scan grp (volume) / scan image
-Scan metadata
-Mask (single image)
-Mask volume
-Fovea (prediction)
-Registration projection
-Classification output
-Dataset
-Model
-
-"""
-
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractclassmethod, abstractmethod, abstractproperty
 from cached_property import cached_property
 
 from collections import defaultdict
-import json
 import os
 
 class MetadataRecord():
@@ -64,10 +10,11 @@ class MetadataRecord():
     Good to keep separate to avoid data-deduplication
     Can also add getters for common pieces of info to make transparent to format
     """
-    def __init__(self, data, location=None):
+    def __init__(self, data, location=None, parser=None):
         self._format = None
         self._data = data
         self._location = location
+        self._parser = parser # Should maybe call this 
         
     @property
     def raw(self):
@@ -77,34 +24,44 @@ class MetadataRecord():
     def location(self):
         return os.path.dirname(os.path.abspath(self._location))
     
-    def get_view(self, format=None):
-        return MetadataViewCrystalEye(self)
+    def get_view(self, format=None, parser=None):
+        return MetadataView(self, parser=parser)
     
     @classmethod
     def load(cls, file_path):
-        if not file_path.endswith(".json"):
-            file_path = os.path.join(file_path, "metadata.json")
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        return MetadataRecord(data, file_path)
+        """
+        Class method for loading - should maybe alter this to auto-detect loading in future
+        """
+        raise NotImplementedError()
     
         
-class MetadataView(metaclass=ABCMeta):
-    def __init__(self, record, view_info=None):
+class MetadataView():
+    def __init__(self, record, view_info=None, parser=None):
         self._record = record
         self._view_info = view_info if view_info else dict()
-        
-    def get_by_path(self, path, root=None):
-        if root:
-            pos = root
-        else:
-            pos = self._record.raw
-        for index in path:
-            pos = pos[index]
-        return pos
+        self._parser = parser
     
+    @property
+    def parser(self):
+        return self._parser or self._record._parser
+    
+    def __getattribute__(self, attribute_name):
+        try:
+            return super().__getattribute__(attribute_name)
+        except AttributeError as e:
+            # Try get value from parser
+            res = self.get_value(attribute_name)
+            if not res is None:
+                return res
+            else:
+                # If not found, raise the standard AttributeError
+                raise 
+            
     def get_view(self, view_info):
-        return self.__class__(self._record, view_info)
+        return self.__class__(self._record, view_info=view_info, parser=self._parser)
+    
+    def get_value(self, attribute_name):
+        return self.parser.get_value(attribute_name, self._record, self._view_info)
     
     @property
     def scan_number(self):
@@ -118,35 +75,9 @@ class MetadataView(metaclass=ABCMeta):
     def bscan_index(self):
         return self.image_number
     
-    
-    @abstractproperty
-    def _scan_level(self):
-        raise NotImplementedError()
-        
-    @property
-    def _scan_root(self):
-        return self._scan_level[self.scan_number]
-    
-    @property
-    def n_scans(self):
-        return len(self._scan_level)
-    
     @property
     def scans(self):
         return [ self.get_view({'scan_number': i }) for i in range(self.n_scans) ]
-    
-    
-    @abstractproperty
-    def _image_level(self):
-        raise NotImplementedError()
-        
-    @property
-    def _image_root(self):
-        return self._image_level[self.image_number]
-        
-    @property
-    def n_images(self):
-        return len(self._image_level)
         
     @property
     def images(self):
@@ -155,7 +86,7 @@ class MetadataView(metaclass=ABCMeta):
     @property
     def bscans(self):
         return self.images
-    
+        
     def get_groups(self):
         groups = defaultdict(list)
         for scan in self.scans:
@@ -163,68 +94,54 @@ class MetadataView(metaclass=ABCMeta):
         return list(groups.values())
     
     
-    @abstractproperty
-    def group(self):
-        raise NotImplementedError()
-        
-    @abstractproperty
-    def source_id(self):
-        raise NotImplementedError()
-         
-    @abstractproperty
-    def modality(self):
-        raise NotImplementedError()
-        
-    @abstractproperty
-    def location(self):
-        raise NotImplementedError()
-               
-        
-class MetadataViewCrystalEye(MetadataView):
+class MetadataParser(metaclass=ABCMeta):
+    @abstractmethod
+    def get_value(attribute_name, metadata_record, view_info):
+        return NotImplementedError()
+
+class MetadataParserJSON(MetadataParser):
     
     # TODO: Make a way to automatically register these paths
-    
-    @cached_property
-    def manufacturer(self):
-        return self.get_by_path(["exam", "manufacturer"])
-    
-    @cached_property
-    def _scan_level(self):
-        return self.get_by_path(["images", "images"])
-    
-    @cached_property
-    def _image_level(self):
-        return self.get_by_path(["images", "images", self.scan_number, "contents"])
-                                 
-    @cached_property
-    def group(self):
-        return self.get_by_path(["group"], root=self._scan_root)
-    
-    @cached_property
-    def source_id(self):
-        return self.get_by_path(["source_id"], root=self._scan_root)
-    
-    @cached_property
-    def modality(self):
-        return self.get_by_path(["modality"], root=self._scan_root)
-        
-    @cached_property
-    def location(self):
-        scan_idx = self.bscan_index if 'OCT' in self.modality else 0
-        file_name = "{}_{}.png".format(self.source_id, scan_idx)
-        return os.path.join(self._record.location, file_name)
+    def _get_by_path(self, metadata_record, path, root=None):
+        pos = root or metadata_record.raw
+        for index in path:
+            pos = pos[index]
+        return pos
 
+    def _get_path(self, attribute_name, view_info):
+        return self._path_map.get(attribute_name, None)
+    
+    def _map_path(self, path, view_info):
+        mapped_path = list()
+        for p in path:
+            if p.startswith('{') and p.endswith('}'):
+                p = view_info[p.strip('{}')]
+            mapped_path.append(p)
+        return mapped_path
         
-class Record():
-    """
-    Datastructure for holding information about the specific "record" of a scan
-    Mianly to keep track of it for saving purposes
-    """
-    def __init__(self):
-        self._file_path = None
-        self._patient_id = None
-        self._scan_id = None
+    def get_value(self, attribute_name, metadata_record, view_info):
+        if attribute_name in self._overrides:
+            return self._overrides[attribute_name](metadata_record, view_info)
         
-        self._metadata = None # Keep reference to metadata?
+        path = self._get_path(attribute_name, view_info)
+        if path is None:
+            return None
+    
+        mapped_path = self._map_path(path, view_info)
+        return self._get_by_path(metadata_record, mapped_path)
+    
+class MetadataParserCSV(MetadataParser):
+    @abstractmethod
+    def _get_records_subset(self, metadata_record, view_info):
+        return NotImplementedError()
+    
+    def get_value(self, attribute_name, metadata_record, view_info):
+        if attribute_name in self._overrides:
+            return self._overrides[attribute_name](metadata_record, view_info)
         
-        self._entries = None # Keep reference to entries?
+        records_subset = self._get_records_subset(metadata_record, view_info)
+        
+        col_name = self._col_map.get(attribute_name)
+        if col_name is None: return None
+        return records_subset[col_name].values[0]
+    

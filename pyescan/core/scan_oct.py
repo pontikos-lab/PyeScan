@@ -23,6 +23,15 @@ class BScanArray(ArrayView):
     def _repr_png_(self):
         return self._bscans[len(self._bscans)//2]._repr_png_()
     
+    def __getitem__(self, index):
+        return self._bscans[index]
+    
+    def __len__(self):
+        return len(self._bscans)
+    
+    def __array__(self):
+        return self._bscans.data
+    
     def preload(self):
         for bscan in self._bscans:
             bscan.preload()
@@ -46,6 +55,12 @@ class OCTScan(BaseScan):
         
     def _repr_png_(self):
         return self._bscans._repr_png_()
+    
+    def __getitem__(self, index):
+        return self._bscans[index]
+    
+    def __len__(self):
+        return len(self._bscans)
     
     def __array__(self):
         return self._bscans.data
@@ -71,6 +86,9 @@ class OCTScan(BaseScan):
     def data(self):
         return self._bscans.data
     
+    @property
+    def shape(self):
+        return self._bscans.data.shape
     
     def plot_image(self, include_annotations=False):
         raise NotImplementedError()
