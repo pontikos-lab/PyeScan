@@ -3,7 +3,7 @@ from cached_property import cached_property
 from .utils import ArrayView
 
 import numpy as np
-from PIL import Image
+from PIL import Image as PILImage
 
 class LazyImage():
     """
@@ -19,11 +19,21 @@ class LazyImage():
         self._raw_image = None
         self._image = None
         self.loaded = False # Currently checking for _image is None
-        
+
+    def __getattr__(self, attr):
+        # Pass through other calls to underlying image
+        return getattr(self.image, attr)
+    
+    def __array__(self):
+        return self.data
+    
+    def _repr_png_(self):
+        return self.image._repr_png_()
+    
     def load(self, force=False):
         #TODO: add proper debug logging
         #print("Loaded image", self._file_location)
-        self._raw_image = Image.open(self._file_location)
+        self._raw_image = PILImage.open(self._file_location)
         self._image = self._raw_image
         if self._color_mode:
             self._image = self._image.convert(mode=self._color_mode)
@@ -50,24 +60,6 @@ class LazyImage():
     def data(self):
         return np.array(self.image)
     
-    def __array__(self):
-        return self.data
-    
-    def _repr_png_(self):
-        return self.image._repr_png_()
-    
-
-    @cached_property
-    def size(self):
-        return self.image.size
-        
-    @property # Don't cache this as can be overwritten
-    def format(self):
-        return self.image.format
-        
-    @cached_property
-    def mode(self):
-        return self.image.mode
 
 
 class ImageVolume(ArrayView):

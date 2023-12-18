@@ -56,6 +56,12 @@ class OCTScan(BaseScan):
     def _repr_png_(self):
         return self._bscans._repr_png_()
     
+    def _ipython_display_(self):
+        #print("Test")
+        from IPython.display import display, Image
+        #display(Image(self._repr_png_()))
+        display(self._build_display_widget())
+    
     def __getitem__(self, index):
         return self._bscans[index]
     
@@ -101,4 +107,58 @@ class OCTScan(BaseScan):
     def bscans(self):
         return self._scans
         
-    
+        
+    def _build_display_widget(self):
+        from ipywidgets import widgets
+        from PIL import Image as PILImage
+        import io
+        def encode_image(image):
+            #TODO: Enable this conversion to make this more general in future
+            #image = PILImage(image)
+
+            # Save image to buffer
+            imgByteArr = io.BytesIO()
+            image.save(imgByteArr, format=image.format)
+            # Turn the BytesIO object back into a bytes object
+            imgByteArr = imgByteArr.getvalue()
+            return imgByteArr
+        
+        width=320
+        height=320
+        
+        encoded_enface = encode_image(self.enface.image)
+        encoded_volume = [ encode_image(image) for image in self.images ]
+        n_images = len(encoded_volume)
+
+        # Create a slider widget for image navigation
+        w_slider = widgets.IntSlider(min=0, max=n_images-1, step=1,
+                                         layout={'width': str(width*2)+'px'},
+                                         readout=True,
+                                         readout_format='d')
+
+        w_value = widgets.Label(value="Some text",
+                                layout={'width': str(width*2)+'px', 'visible': 'true'})
+        
+        # Create an image widget for displaying images
+        w_image_enface = widgets.Image(value=encoded_enface, width=width, height=height)
+
+        # Create an image widget for displaying images
+        w_image_volume = widgets.Image(value=encoded_volume[n_images//2], width=width, height=height)
+        
+        # Define a function to update the displayed image based on the slider value
+        def update_image(change):
+            index = change.new
+            w_image_volume.value=encoded_volume[index]
+            #image_widget.reload() #Not currenly needed
+            #img_display.update(image_layout) #Not currently needed
+
+        # Connect the slider and image widgets
+        w_slider.observe(update_image, names='value')
+
+        # Arrange the widgets using an HBox
+        image_layout = widgets.HBox([w_image_enface, w_image_volume])
+        display_layout = widgets.VBox([w_slider, image_layout])
+        
+        # Display the widgets
+        #img_display = display(image_layout, display_id=True)
+        return display_layout
