@@ -90,6 +90,7 @@ def get_circle_line_intersection(circle_centre, radius, line_start, line_end):
     return t1, t2
 
 def get_distance_mask(row, radius):
+    import numpy as np
     bscan_start = 0, row.bscan_index * row.resolutions_mm_depth
     bscan_end = row.dimensions_mm_width, row.bscan_index * row.resolutions_mm_depth
 
@@ -98,8 +99,8 @@ def get_distance_mask(row, radius):
     
     intersection = get_circle_line_intersection(fovea_location, radius, bscan_start, bscan_end)
 
-    im_w = row.size_width
-    im_h = row.size_height
+    im_w = row.mask_width
+    im_h = row.mask_height
     mask = np.zeros((im_h, im_w))
     
     if intersection:
@@ -108,32 +109,50 @@ def get_distance_mask(row, radius):
         mask[:,int(start*im_w):int(end*im_w)-1] = 1.0
     return mask
 
-def get_volume_at_distance(row, radius, area_only=False):
-    mask = get_distance_mask(row, radius)
-    if not mask.any(): return 0
-    if mask.all(): return row.pixel_count_horizontal if area_only else row.pixel_count
+def get_pixel_count_at_distance(row, radius, area_only=False):
+    import numpy as np
+    from PIL import Image
     
-    img = np.array(Image.open(row.file_path)) > 0.
-    masked_img = img * mask
+    import numbers
+    return_single_value = False
+    if isinstance(radius, numbers.Number):
+        radius = [ radius ]
+        return_single_value = True
     
-    if area_only:
-        return masked_img.any(axis=0).sum()
-    return masked_img.sum()
+    masks = [ get_distance_mask(row, rad) for rad in radius ]
+    mask = np.array(masks)
+    if not mask.any():
+        return 0. if return_single_value else [ 0. ] * len(radius)
+    if mask.all():
+        val = row.pixel_count_horizontal if area_only else row.pixel_count
+        return val if return_single_value else [ val ] * len(radius)
 
-def get_1mm_ring_volume(row):
-    return get_volume_at_distance(row, .5, area_only=False)
+    img = np.array(Image.open(row.file_path).convert('L')) > 0.
+    
+    results = list()
+    for mask in masks:
+        masked_img = img * mask
+        result = masked_img.any(axis=0).sum() if area_only else masked_img.sum()
+        results.append(result)
+    return results[0] if return_single_value else results
 
-def get_3mm_ring_volume(row):
-    return get_volume_at_distance(row, 1.5, area_only=False)
+def get_distance_pixel_counts(row, distances=[.5, 1.5, 3.]):
+    return get_pixel_count_at_distance(row, distances, area_only=False)
 
-def get_6mm_ring_volume(row):
-    return get_volume_at_distance(row, 3., area_only=False)
+def get_distance_volumes(row, distances=[.5, 1.5, 3.]):
+    scale_w = row.size_width / row.mask_width * row.resolutions_mm_width
+    scale_h = row.size_height / row.mask_height * row.resolutions_mm_height
+    scale = scale_w * scale_h * row.resolutions_mm_depth
+    
+    results = get_pixel_count_at_distance(row, distances, area_only=False)
+    return [ r*scale for r in results ] 
 
-def get_1mm_ring_area(row):
-    return get_volume_at_distance(row, .5, area_only=True)
+def get_distance_horizontal_pixel_counts(row, distances=[.5, 1.5, 3.]):
+    return get_pixel_count_at_distance(row, distances, area_only=True)
 
-def get_3mm_ring_area(row):
-    return get_volume_at_distance(row, 1.5, area_only=True)
-
-def get_6mm_ring_area(row):
-    return get_volume_at_distance(row, 3., area_only=True)
+def get_distance_areas(row, distances=[.5, 1.5, 3.]):
+    scale_w = row.size_width / row.mask_width * row.resolutions_mm_width
+    scale = scale_w * row.resolutions_mm_depth
+    
+    results = get_pixel_count_at_distance(row, distances, area_only=True)
+    return [ r*scale for r in results ] 
