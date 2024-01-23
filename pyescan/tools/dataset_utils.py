@@ -1,4 +1,5 @@
 import click
+import os
 
 def flatten_dict(dict_in, name=""):
     # Recursive function that "flattens" a nested dict by concatenating key names of sub-dicts
@@ -18,7 +19,6 @@ def flatten_dict(dict_in, name=""):
 # TODO: Get the bscan-level 
 def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True, skip_image_level=False):
     import json
-    import os
     import pandas as pd
     import tqdm
         
@@ -131,7 +131,7 @@ def get_pe_export_summary_cli(export_location, output_csv, file_structure="pat/s
         click.echo(f"Result saved to {output_location}")
     else:
         # If output_location is not provided, save to scans_folder with a default filename
-        default_output = os.path.join(scans_folder, "metadata_summary.csv")
+        default_output = os.path.join(export_location, "metadata_summary.csv")
         df.to_csv(default_output, index=False)
 
 
@@ -332,13 +332,14 @@ def run_function_over_csv_cli(csv_file, function, output_csv=None, column_headin
     result_df.to_csv(output_csv, index=False)
     click.echo(f"Result saved to {output_csv}")
     
-    
+# TODO: Deal with situations where there is partially missing values
+#  in a given column (e.g. single value + na)
 def detect_pivot_cols(df, pivot_col, identifier_cols):
     # Find columns with identical values for each unique combination in the target columns (from ChatGPT)
     index_cols = list()
     for col in df.columns:
         if col in identifier_cols: continue # skip
-        if (df.groupby(identifier_cols)[col].nunique() <= 1).all():
+        if (df.groupby(identifier_cols)[col].nunique(dropna=False) <= 1).all():
             index_cols.append(col)
     index_cols = identifier_cols + index_cols
 
