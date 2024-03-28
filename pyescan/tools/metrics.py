@@ -149,7 +149,30 @@ def get_distance_mask_enface(row, radius):
     
     return mask
 
-def get_pixel_count_at_distance(row, radius, hexent_only=False):
+def get_quadrant_masks_enface(row):
+    import numpy as np
+
+    im_w = row.mask_width
+    im_h = row.mask_height
+    
+    if 'fovea_x' in row:
+        center_x, center_y = row.fovea_x, row.fovea_y
+    else:
+        center_x, center_y = im_w // 2, im_h //2
+    
+    y, x = np.ogrid[:im_h, :im_w]
+    upper_left = (y - center_y >= x - center_x)
+    upper_right = (y - center_y >= center_x - x)
+    
+    masks = [ np.zeros((im_h, im_w)) for _ in range(4) ]
+    masks[0][~upper_left & ~upper_right] = 1.0 # Upper, increasing y is bottom
+    masks[1][~upper_left & upper_right] = 1.0 # Right (as viewed)
+    masks[2][upper_left & upper_right] = 1.0 # Lower
+    masks[3][upper_left & ~upper_right] = 1.0 # left (as viewed)
+    
+    return masks
+
+def get_pixel_count_at_distance(row, radius, hexent_only=False, by_quadrant=False):
     import numpy as np
     from PIL import Image
     
@@ -157,9 +180,16 @@ def get_pixel_count_at_distance(row, radius, hexent_only=False):
     return_single_value = False
     if isinstance(radius, numbers.Number):
         radius = [ radius ]
-        return_single_value = True
+        return_single_value = not by_quadrant
     
     masks = [ get_distance_mask(row, rad) for rad in radius ]
+    if by_quadrant:
+        quadrant_masks = get_quadrant_masks_enface(row)
+        masks_ = []
+        for mask in masks:
+            masks_.extend([ q_mask * mask for q_mask in quadrant_masks ])
+        masks = masks_
+        
     mask = np.array(masks)
     if not mask.any():
         return 0. if return_single_value else [ 0. ] * len(radius)
@@ -190,7 +220,7 @@ def get_distance_volumes(row, distances=[.5, 1.5, 3.]):
 def get_distance_horizontal_pixel_counts(row, distances=[.5, 1.5, 3.]):
     return get_pixel_count_at_distance(row, distances, hextent_only=True)
 
-def get_distance_areas(row, distances=[.5, 1.5, 3.]):
+def get_distance_areas(row, distances=[.5, 1.5, 3.], by_quadrant=False):
     hexent_only = (row.modality == "OCT")
     
     if hexent_only:
@@ -201,5 +231,5 @@ def get_distance_areas(row, distances=[.5, 1.5, 3.]):
         scale_h = row.size_height / row.mask_height * row.resolutions_mm_height
         scale = scale_w * scale_h
     
-    results = get_pixel_count_at_distance(row, distances, hexent_only=hexent_only)
+    results = get_pixel_count_at_distance(row, distances, hexent_only=hexent_only, by_quadrant=by_quadrant)
     return [ r*scale for r in results ] 
