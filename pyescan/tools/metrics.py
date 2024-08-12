@@ -172,7 +172,7 @@ def get_quadrant_masks_enface(row):
     
     return masks
 
-def get_pixel_count_at_distance(row, radius, hexent_only=False, by_quadrant=False):
+def get_pixel_count_at_distance(row, radius, hextent_only=False, by_quadrant=False):
     import numpy as np
     from PIL import Image
     
@@ -194,7 +194,7 @@ def get_pixel_count_at_distance(row, radius, hexent_only=False, by_quadrant=Fals
     if not mask.any():
         return 0. if return_single_value else [ 0. ] * len(radius)
     if mask.all():
-        val = row.pixel_count_horizontal if hexent_only else row.pixel_count
+        val = row.pixel_count_horizontal if hextent_only else row.pixel_count
         return val if return_single_value else [ val ] * len(radius)
 
     img = np.array(Image.open(row.file_path).convert('L')) > 0.
@@ -202,7 +202,7 @@ def get_pixel_count_at_distance(row, radius, hexent_only=False, by_quadrant=Fals
     results = list()
     for mask in masks:
         masked_img = img * mask
-        result = masked_img.any(axis=0).sum() if hexent_only else masked_img.sum()
+        result = masked_img.any(axis=0).sum() if hextent_only else masked_img.sum()
         results.append(result)
     return results[0] if return_single_value else results
 
@@ -221,9 +221,9 @@ def get_distance_horizontal_pixel_counts(row, distances=[.5, 1.5, 3.]):
     return get_pixel_count_at_distance(row, distances, hextent_only=True)
 
 def get_distance_areas(row, distances=[.5, 1.5, 3.], by_quadrant=False):
-    hexent_only = (row.modality == "OCT")
+    hextent_only = (row.modality == "OCT")
     
-    if hexent_only:
+    if hextent_only:
         scale_w = row.size_width / row.mask_width * row.resolutions_mm_width
         scale = scale_w * row.resolutions_mm_depth
     else:
@@ -231,5 +231,5 @@ def get_distance_areas(row, distances=[.5, 1.5, 3.], by_quadrant=False):
         scale_h = row.size_height / row.mask_height * row.resolutions_mm_height
         scale = scale_w * scale_h
     
-    results = get_pixel_count_at_distance(row, distances, hexent_only=hexent_only, by_quadrant=by_quadrant)
+    results = get_pixel_count_at_distance(row, distances, hextent_only=hextent_only, by_quadrant=by_quadrant)
     return [ r*scale for r in results ] 
