@@ -23,15 +23,6 @@ class BScanArray(ArrayView):
     def _repr_png_(self):
         return self._bscans[len(self._bscans)//2]._repr_png_()
     
-    def __getitem__(self, index):
-        return self._bscans[index]
-    
-    def __len__(self):
-        return len(self._bscans)
-    
-    def __array__(self):
-        return self._bscans.data
-    
     def preload(self):
         for bscan in self._bscans:
             bscan.preload()
@@ -42,7 +33,7 @@ class BScanArray(ArrayView):
 
     @property
     def images(self):
-        return ImageVolume([bscan._image for bscan in self._bscans])
+        return ImageVolume([bscan.image for bscan in self._bscans])
     
 class OCTScan(BaseScan):
     """

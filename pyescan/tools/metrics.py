@@ -1,13 +1,21 @@
-def get_mask_stats(row):
+def _load_image_as_mask(image_path):
     from PIL import Image
     import numpy as np
     try:
-        img = Image.open(row.file_path).convert("L")
-        width, height = img.size
-        mask = np.array(img) > 127
-        return width, height, mask.sum(), mask.any(axis=0).sum(), mask.any(axis=1).sum()
+        img = np.array(Image.open(image_path).convert("L") > 0)
+        return img
     except FileNotFoundError as e: 
+        return None
+    
+def get_mask_stats(row, mask='NotProvided'):
+    import numpy as np
+    if mask == 'NotProvided':
+        mask = _load_image_as_mask(rom.file_path)
+    if mask is None:
         return None, None, 0., 0., 0.
+    else:
+        width, height = mask.shape
+        return width, height, mask.sum(), mask.any(axis=0).sum(), mask.any(axis=1).sum()   
     
 def get_mask_area(row):
     rescale_w = row.size_width / row.mask_width
@@ -18,8 +26,9 @@ def get_mask_area(row):
     vertical_extent = row.vertical_pixel_count * row.resolutions_mm_height * rescale_h
     return area, horizontal_extent, vertical_extent
 
+#TODO: Turn into using PIL-loaded masks
 def count_mask_clusters(row):
-    #Using watershet clustering
+    #Using watershed clustering
     import cv2
     import numpy as np
 
@@ -62,7 +71,7 @@ def count_mask_clusters(row):
     # Print the number of clusters
     return len(unique_markers)
 
-def get_circle_line_intersection(circle_centre, radius, line_start, line_end):
+def _get_circle_line_intersection(circle_centre, radius, line_start, line_end):
     import math
 
     dx = line_end[0] - line_start[0]
@@ -90,13 +99,14 @@ def get_circle_line_intersection(circle_centre, radius, line_start, line_end):
 
     return t1, t2
 
-def get_distance_mask(row, radius):
+# TODO: Break up this into different pathways, because this is just confusing
+def _get_distance_mask(row, radius):
     if row.modality == "OCT":
-        return get_distance_mask_oct(row, radius)
+        return _get_distance_mask_oct(row, radius)
     else:
-        return get_distance_mask_enface(row, radius)
+        return _get_distance_mask_enface(row, radius)
 
-def get_distance_mask_oct(row, radius):
+def _get_distance_mask_oct(row, radius):
     import numpy as np
     bscan_start = 0, row.bscan_index * row.resolutions_mm_depth
     bscan_end = row.dimensions_mm_width, row.bscan_index * row.resolutions_mm_depth
@@ -104,7 +114,7 @@ def get_distance_mask_oct(row, radius):
     fovea_location = row.fovea_x * row.resolutions_mm_width, \
                      row.fovea_bscan_index * row.resolutions_mm_depth
     
-    intersection = get_circle_line_intersection(fovea_location, radius, bscan_start, bscan_end)
+    intersection = _get_circle_line_intersection(fovea_location, radius, bscan_start, bscan_end)
 
     im_w = row.mask_width
     im_h = row.mask_height
@@ -116,7 +126,7 @@ def get_distance_mask_oct(row, radius):
         mask[:,int(start*im_w):int(end*im_w)-1] = 1.0
     return mask
 
-def get_distance_mask_enface(row, radius):
+def _get_distance_mask_enface(row, radius):
     import numpy as np
     from skimage.draw import disk
 
@@ -149,7 +159,7 @@ def get_distance_mask_enface(row, radius):
     
     return mask
 
-def get_quadrant_masks_enface(row):
+def _get_quadrant_masks_enface(row):
     import numpy as np
 
     im_w = row.mask_width
@@ -172,7 +182,7 @@ def get_quadrant_masks_enface(row):
     
     return masks
 
-def get_pixel_count_at_distance(row, radius, hextent_only=False, by_quadrant=False):
+def get_pixel_count_at_distance(row, radius, hextent_only=False, by_quadrant=False, mask='NotProvided'):
     import numpy as np
     from PIL import Image
     
@@ -182,26 +192,31 @@ def get_pixel_count_at_distance(row, radius, hextent_only=False, by_quadrant=Fal
         radius = [ radius ]
         return_single_value = not by_quadrant
     
-    masks = [ get_distance_mask(row, rad) for rad in radius ]
-    if by_quadrant:
+    d_masks = [ get_distance_mask(row, rad) for rad in radius ]
+    if by_quadrant: # Take outper product if including quadrants
         quadrant_masks = get_quadrant_masks_enface(row)
-        masks_ = []
-        for mask in masks:
-            masks_.extend([ q_mask * mask for q_mask in quadrant_masks ])
-        masks = masks_
+        d_masks_ = []
+        for d_mask in d_masks:
+            d_masks_.extend([ q_mask * d_mask for q_mask in quadrant_masks ])
+        d_masks = d_masks_
+    
+    if mask == 'NotProvided':
         
-    mask = np.array(masks)
-    if not mask.any():
-        return 0. if return_single_value else [ 0. ] * len(radius)
-    if mask.all():
-        val = row.pixel_count_horizontal if hextent_only else row.pixel_count
-        return val if return_single_value else [ val ] * len(radius)
+        # Check if we can skip loading to save reads
+        d_mask = np.array(d_masks)
+        if not d_mask.any():
+            return 0. if return_single_value else [ 0. ] * len(radius)
+        if d_mask.all():
+            val = row.pixel_count_horizontal if hextent_only else row.pixel_count
+            return val if return_single_value else [ val ] * len(radius)
 
-    img = np.array(Image.open(row.file_path).convert('L')) > 0.
+        mask = _load_image_as_mask(rom.file_path)
+        if mask is None:
+            return 0. if return_single_value else [ 0.] * len(d_masks)
     
     results = list()
-    for mask in masks:
-        masked_img = img * mask
+    for d_mask in d_masks:
+        masked_img = mask * d_mask
         result = masked_img.any(axis=0).sum() if hextent_only else masked_img.sum()
         results.append(result)
     return results[0] if return_single_value else results
@@ -220,6 +235,7 @@ def get_distance_volumes(row, distances=[.5, 1.5, 3.]):
 def get_distance_horizontal_pixel_counts(row, distances=[.5, 1.5, 3.]):
     return get_pixel_count_at_distance(row, distances, hextent_only=True)
 
+#TODO: Split into separate OCT and enface fucntions
 def get_distance_areas(row, distances=[.5, 1.5, 3.], by_quadrant=False):
     hextent_only = (row.modality == "OCT")
     

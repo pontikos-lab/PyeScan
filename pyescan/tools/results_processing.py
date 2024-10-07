@@ -1,14 +1,14 @@
 # Grouby patient number
 # and then group by another value and accregate predictions
-def get_results_from_dataframe(df, classes=None, group_on='file.path', patient_id_key='patient.number'):
+def get_results_from_dataframe(df, classes=None, group_on='file_path', patient_id_key='patient_number'):
     import numpy as np
     
     if classes is None:
-        classes = [ cls.replace("pred.","") for cls in df.columns
-                    if cls.startswith("pred.")
-                    and not cls in ["pred.class", "pred.model"] ]
+        classes = [ cls.replace("pred_","") for cls in df.columns
+                    if cls.startswith("pred_")
+                    and not cls in ["pred_class", "pred_model"] ]
 
-    pandas_query = [ 'pred.'+cls for cls in classes ]
+    pandas_query = [ 'pred_'+cls for cls in classes ]
     
     truth, pred_scores, pat_ids = list(), list(), list()
     for pat_id, pat_entries in df.groupby(patient_id_key):
