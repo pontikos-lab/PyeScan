@@ -28,7 +28,7 @@ def _build_annotation_from_dataframe_base(df, file_path_col='file_path', index_c
         file_paths[row[index_col]] = row[file_path_col]
     return _build_annotation_from_file_paths(file_paths)
 
-def build_annotation_from_dataframe(df, file_path_col='file_path', index_col='bscan_index', feature_col=None):
+def load_annotation_from_df(df, file_path_col='file_path', index_col='bscan_index', feature_col=None):
     if feature_col:
         annotations_dict = {}
         for feature, df_feat in df.groupby(feature_col):

@@ -141,6 +141,10 @@ class MetadataParserCSV(MetadataParser):
         
         records_subset = self._get_records_subset(metadata_record, view_info)
         
+        if len(records_subset) == 0:
+            raise Exception(f"No records available for target {view_info}" +\
+                            ". Could you have missing data?")
+        
         col_name = self._col_map.get(attribute_name)
         if col_name is None: return None
         return records_subset[col_name].values[0]

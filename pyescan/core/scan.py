@@ -42,6 +42,15 @@ class BaseScan(metaclass=ABCMeta): # We could probably make this into a metaclas
         """ Try search for annotations automatically """
         raise NotImplementedError()
         
+    def add_annotation(self, feature_name, annotation):
+        annotation._scan = self
+        self._annotations[feature_name] = annotation
+        
+    def add_annotations(self, annotation_dict):
+        for feature_name, annotation in annotation_dict.items():
+            annotation._scan = self
+            self._annotations[feature_name] = annotation
+        
     @property
     def annotations(self):
         return self._annotations

@@ -108,7 +108,6 @@ class AnnotationOCT(Annotation):
         return self._masks._repr_png_()
     
     def _ipython_display_(self):
-        #print("Test")
         from IPython.display import display, Image
         display(self._build_display_widget())
         
@@ -121,50 +120,6 @@ class AnnotationOCT(Annotation):
         return self._masks.data
    
     def _build_display_widget(self):
-        from ipywidgets import widgets
-        from PIL import Image as PILImage
-        import io
-        
-        width=320
-        height=320
-        
-        def encode_image(image):
-            # Save image to buffer
-            imgByteArr = io.BytesIO()
-            if image is None:
-                image = PILImage.new('L', (20, 20))
-            image.save(imgByteArr, format='PNG')
-            # Turn the BytesIO object back into a bytes object
-            imgByteArr = imgByteArr.getvalue()
-            return imgByteArr
-        
-        encoded_volume = [ encode_image(image) for image in self.images ]
-        n_images = len(encoded_volume)
-
-        # Create a slider widget for image navigation
-        w_slider = widgets.IntSlider(min=0, max=n_images-1, step=1,
-                                         layout={'width': str(width*2)+'px'},
-                                         readout=True,
-                                         readout_format='d')
-
-        w_value = widgets.Label(value="Some text",
-                                layout={'width': str(width)+'px', 'visible': 'true'})
-        
-        # Create an image widget for displaying images
-        w_image_volume = widgets.Image(value=encoded_volume[n_images//2], width=width, height=height)
-        
-        # Define a function to update the displayed image based on the slider value
-        def update_image(change):
-            index = change.new
-            w_image_volume.value=encoded_volume[index]
-
-        # Connect the slider and image widgets
-        w_slider.observe(update_image, names='value')
-
-        # Arrange the widgets using a VBox
-        display_layout = widgets.VBox([w_slider, w_image_volume])
-        
-        # Display the widgets
-        #img_display = display(image_layout, display_id=True)
-        return display_layout
+        from .visualisation import image_array_display_widget
+        return image_array_display_widget(self.images, width=320, height=320)
         
