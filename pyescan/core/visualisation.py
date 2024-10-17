@@ -119,9 +119,11 @@ def overlay_masks(image, masks, colors=None, feature_names=None, alpha=0.5):
         if isinstance(mask, np.ndarray):
             mask = PILImage.fromarray(mask)
             
+        mask = mask.convert('L')
+            
         # Resize mask if it doesn't match the input image size
         if mask.size != (width, height):
-            mask = mask.resize((width, height), Image.NEAREST)
+            mask = mask.resize((width, height), PILImage.NEAREST)
             
         # Convert mask to numpy array and normalize to range [0, 1]
         mask_array = np.array(mask).astype(np.float32) / 255.0

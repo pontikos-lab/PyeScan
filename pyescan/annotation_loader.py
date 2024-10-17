@@ -1,4 +1,5 @@
-from pyescan.core.annotation import MaskImage, MaskVolume, AnnotationOCT
+from .core.annotation import MaskImage, MaskVolume, AnnotationOCT
+from .tools.dataset_utils import summarise_dataset
 
 def _build_annotation_from_file_paths(file_paths):
     masks = list()
@@ -38,3 +39,8 @@ def load_annotation_from_df(df, file_path_col='file_path', index_col='bscan_inde
     else:
         ann = _build_annotation_from_dataframe_base(df, file_path_col, index_col)
         return ann
+
+def load_annotation_from_folder(annotations_folder, folder_structure="{feature}/{source_id}_{bscan_index:\d+}.png"):
+    df = summarise_dataset(annotations_folder, structure=folder_structure, progress=False)
+    annotations = load_annotation_from_df(df, feature_col='feature')
+    return annotations

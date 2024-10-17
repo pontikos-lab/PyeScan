@@ -42,8 +42,14 @@ class OCTScan(BaseScan):
     """
     def __init__(self, enface, bscans, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._enface = enface #EnfaceScan
+        
+        if enface:
+            self._enface = enface #EnfaceScan
+            self._enface.set_parent(self)
+        
         self._bscans = bscans #BscanArray
+        for bscan in self._bscans:
+            bscan.set_parent(self)
         
     def _repr_png_(self):
         return self._bscans._repr_png_()

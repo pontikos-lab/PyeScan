@@ -120,24 +120,42 @@ class CrystalEyeParserCSV(MetadataParserCSV):
         #records_subset = self._get_records_subset(metadata_record, view_info)
         return metadata_record.raw.source_id.nunique()
     
-
-def load_record_from_CE(path_to_record_folder, format=None):
+def load_record_from_json_CE(metadata_file_path, format=None):
     
     import json
     file_path = path_to_record_folder
     if not file_path.endswith(".json"):
         file_path = os.path.join(file_path, "metadata.json")
-    with open(file_path, 'r') as f:
+    with open(metadata_file_path, 'r') as f:
         json_data = json.load(f)
         
     record = MetadataRecord(json_data, file_path)
     metadata = record.get_view(parser=CrystalEyeParser())
-    
     return build_from_metadata(metadata)
 
+def load_record_from_CE(path_to_record_folder, format=None):
+
+    file_path = path_to_record_folder
+    if not file_path.endswith(".json"):
+        file_path = os.path.join(file_path, "metadata.json")
+
+    return load_record_from_json_CE(file_path, format=format)
+
+def load_records_from_CE(path_to_records_folder, folder_structure="{pat}/{sdb}/metadata.json"):
+    raise NotImplementedError()
+    
 
 def load_record_from_df(df_scan, column_headings={}):
     record = MetadataRecord(df_scan)
     metadata = record.get_view(parser=CrystalEyeParserCSV(column_headings=column_headings))
             
     return build_from_metadata(metadata)
+
+def load_records_from_df(df, column_headings={}, identifier_columns=['pat', 'sdb']):
+    from tqdm import tqdm
+    scans = {}
+    for identifier, df_scan in tqdm(df.groupby(identifier_columns)):
+        scan_set = load_record_from_df(df_scan, column_headings=column_headings)
+        for i, scan in enumerate(scan_set):
+            scans[(*identifier,i)] = scan
+    return scans

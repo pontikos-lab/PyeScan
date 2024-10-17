@@ -2,13 +2,15 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 from cached_property import cached_property
 
 class BaseScan(metaclass=ABCMeta): # We could probably make this into a metaclass itself
-    def __init__(self, metadata=None, *args, **kwargs):
+    def __init__(self, metadata=None, parent=None, *args, **kwargs):
         self._record = None
         self._group_id = None # This should uniquely identify the high-level scan within the record
         
         self._metadata = metadata 
 
         self._annotations = dict() # Keep a reference to annotations in the class?
+        
+        self._parent = parent
     
     def __repr__(self):
         return self.__class__.__name__
@@ -50,6 +52,9 @@ class BaseScan(metaclass=ABCMeta): # We could probably make this into a metaclas
         for feature_name, annotation in annotation_dict.items():
             annotation._scan = self
             self._annotations[feature_name] = annotation
+            
+    def set_parent(self, parent_scan):
+        self._parent = parent_scan
         
     @property
     def annotations(self):

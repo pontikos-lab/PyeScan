@@ -16,11 +16,11 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'summarise_pe_export = pyescan.tools.dataset_utils:get_pe_export_summary_cli',
-            'summarise_dataset = pyescan.tools.dataset_utils:summarise_dataset_cli',
-            'run_function_on_csv = pyescan.tools.dataset_utils:run_function_on_csv_cli',
-            'run_function_over_csv = pyescan.tools.dataset_utils:run_function_over_csv_cli',
-            'narrow_to_wide = pyescan.tools.dataset_utils:narrow_to_wide_cli'
+            'summarise_pe_export = pyescan.tools.cli:get_pe_export_summary_cli',
+            'summarise_dataset = pyescan.tools.cli:summarise_dataset_cli',
+            'run_function_on_csv = pyescan.tools.cli:run_function_on_csv_cli',
+            'run_function_over_csv = pyescan.tools.cli:run_function_over_csv_cli',
+            'narrow_to_wide = pyescan.tools.cli:narrow_to_wide_cli'
         ],
     },
     classifiers=[

@@ -10,6 +10,8 @@ def build_oct_from_metadata(oct_meta, enface_meta=None):
         enface_img_path = enface_meta.image_location
         enface_img = LazyImage(enface_img_path)
         enface = IRScan(image=enface_img, metadata=enface_meta)
+    else:
+        enface = None
 
     bscans = list()
     for i, bscan_meta in enumerate(oct_meta.bscans):
@@ -18,6 +20,7 @@ def build_oct_from_metadata(oct_meta, enface_meta=None):
         bscan = BScan(bscan_img, i, bscan_meta)
         bscans.append(bscan)
     bscan_array = BScanArray(bscans)
+    
     scan = OCTScan(enface, bscan_array, metadata=oct_meta)
     return scan
 
@@ -25,6 +28,12 @@ def build_faf_from_metadata(scan_meta):
     scan_img_path = scan_meta.image_location
     scan_img = LazyImage(scan_img_path)
     scan = FAFScan(image=scan_img, metadata=scan_meta)
+    return scan
+
+def build_ir_from_metadata(scan_meta):
+    scan_img_path = scan_meta.image_location
+    scan_img = LazyImage(scan_img_path)
+    scan = IRScan(image=scan_img, metadata=scan_meta)
     return scan
 
 def build_from_metadata(metadata):
@@ -37,19 +46,24 @@ def build_from_metadata(metadata):
             scan = build_oct_from_metadata(oct_meta, ir_meta)
             scans.append(scan)
             
-        if modalities == ['OCT', 'SLO - Infrared' ]:
+        elif modalities == ['OCT', 'SLO - Infrared' ]:
             oct_meta, ir_meta = group
             scan = build_oct_from_metadata(oct_meta, ir_meta)
             scans.append(scan)
             
         elif modalities == ['OCT']:
-            oct_meta = group
+            oct_meta = group[0]
             scan = build_oct_from_metadata(oct_meta, None)
             scans.append(scan)
             
         elif modalities == ['AF - Blue']:
             scan_meta = group[0]
             scan = build_faf_from_metadata(scan_meta)
+            scans.append(scan)
+            
+        elif modalities == ['SLO - Infrared']:
+            scan_meta = group[0]
+            scan = build_ir_from_metadata(scan_meta)
             scans.append(scan)
             
         else:

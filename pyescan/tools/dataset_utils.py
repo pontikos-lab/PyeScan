@@ -154,7 +154,7 @@ def structure_to_regex(structure_pattern):
     return regex_pattern
     
 
-def summarise_dataset(dataset_root, structure="{pat}/{sdb}/{source_id}_{bscan_index:\d+}.png", regex=None):
+def summarise_dataset(dataset_root, structure="{pat}/{sdb}/{source_id}_{bscan_index:\d+}.png", regex=None, progress=True):
     import os
     import re
     import pandas as pd
@@ -165,7 +165,7 @@ def summarise_dataset(dataset_root, structure="{pat}/{sdb}/{source_id}_{bscan_in
     regex_pattern = regex if regex else structure_to_regex(structure)
     
     records = list()
-    pbar = tqdm.tqdm(os.walk(dataset_root))
+    pbar = tqdm.tqdm(os.walk(dataset_root)) if progress else os.walk(dataset_root)
     for root, dirs, filenames in pbar:
         for filename in filenames:
             file_path = os.path.join(root, filename)
@@ -176,8 +176,9 @@ def summarise_dataset(dataset_root, structure="{pat}/{sdb}/{source_id}_{bscan_in
                 record = { "file_path": file_path, "file_path_relative": rel_path }
                 record.update(match.groupdict())
                 records.append(record)
-                
-        pbar.set_postfix({'scans_found': len(records)})
+        
+        if progress:
+            pbar.set_postfix({'scans_found': len(records)})
         
     return pd.DataFrame(records)
 
