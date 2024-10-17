@@ -101,6 +101,15 @@ class OCTScan(BaseScan):
     @property
     def bscans(self):
         return self._bscans
+    
+    def get_bscan_enface_locations(self):
+        import numpy as np
+        locations = []
+        for bscan in self._bscans:
+            location_start = (bscan.metadata.bscan_start_x, bscan.metadata.bscan_start_y)
+            location_end = (bscan.metadata.bscan_end_x, bscan.metadata.bscan_end_y)
+            locations.append((location_start, location_end))
+        return np.array(locations)
         
     def _annotatated_bscan(self, bscan_index, features=None):
         pass
@@ -117,4 +126,4 @@ class OCTScan(BaseScan):
         else:
             annotated_images = self.images
 
-        return oct_display_widget(annotated_images, self.enface.image, width=640, height=320, enface_size=320)
+        return oct_display_widget(annotated_images, self.enface.image, self.get_bscan_enface_locations(), width=640, height=320, enface_size=320)

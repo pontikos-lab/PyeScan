@@ -12,8 +12,8 @@ def _encode_image(image, default="blank"):
     imgByteArr = imgByteArr.getvalue()
     return imgByteArr
 
-#images = self.images
-def image_array_display_widget(images, width=320, height=320):
+
+def image_array_display_widget(images, width=320, height=320, return_slider=False):
     from ipywidgets import widgets
     from PIL import Image as PILImage
 
@@ -43,11 +43,29 @@ def image_array_display_widget(images, width=320, height=320):
     # Arrange the widgets using a VBox
     display_layout = widgets.VBox([w_slider, w_image_volume])
 
-    return display_layout
+    if return_slider:
+        return display_layout, w_slider
+    else:
+        return display_layout
 
-#images = self.images
-#enface_image = self.enface.image
-def oct_display_widget(images, enface_image, width=640, height=320, enface_size=320):
+def draw_bscan_lines(enface_image, bscan_positions, bscan_index=None):
+    from PIL import ImageDraw
+    enface_image = enface_image.copy().convert("RGB")
+    width, height = enface_image.size
+    
+    draw = ImageDraw.Draw(enface_image)
+    for i, bscan_position in enumerate(bscan_positions):
+        color = "white" if i == bscan_index else "lime"
+        width = 7 if i == bscan_index else 3
+        
+        # Fix indexing from bottom left to top left
+        pos =  ( (bscan_position[0][0], height - bscan_position[0][1]),
+                 (bscan_position[1][0], height - bscan_position[1][1]) )
+        draw.line(pos, fill=color, width=width)
+    
+    return enface_image
+
+def oct_display_widget(images, enface_image, bscan_locations=None, width=640, height=320, enface_size=320):
     from ipywidgets import widgets
     from PIL import Image as PILImage
 
@@ -56,7 +74,15 @@ def oct_display_widget(images, enface_image, width=640, height=320, enface_size=
     w_image_enface = widgets.Image(value=encoded_enface, width=enface_size, height=enface_size)
     
     # Get widget for displaying volume
-    w_image_volume = image_array_display_widget(images, width=width, height=height)
+    w_image_volume, w_slider = image_array_display_widget(images, width=width, height=height, return_slider=True)
+    
+    if not (bscan_locations is None):
+        def update_enface(change):
+            index = change.new
+            updated_enface = draw_bscan_lines(enface_image, bscan_locations, index)
+            w_image_enface.value = _encode_image(updated_enface)
+        w_slider.observe(update_enface, names='value')
+        update_enface(type('change', (), {'new': 0})())
     
     # Create layout
     display_layout = widgets.HBox([w_image_enface, w_image_volume])

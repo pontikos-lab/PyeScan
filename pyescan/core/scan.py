@@ -6,7 +6,7 @@ class BaseScan(metaclass=ABCMeta): # We could probably make this into a metaclas
         self._record = None
         self._group_id = None # This should uniquely identify the high-level scan within the record
         
-        self._metadata = metadata 
+        self._metadata = metadata # MetadataView onto a record
 
         self._annotations = dict() # Keep a reference to annotations in the class?
         

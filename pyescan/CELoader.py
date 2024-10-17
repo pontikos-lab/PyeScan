@@ -65,7 +65,12 @@ class CrystalEyeParser(MetadataParserJSON):
         "group": _scan_level + ["group"],
         "source_id": _scan_level + ["source_id"],
         "modality": _scan_level + ["modality"],
-        "manufacturer": _scan_level + ["manufacturer"]
+        "manufacturer": _scan_level + ["manufacturer"],
+        
+        "bscan_start_x": _image_level + ["photo_locations", 0, "start", "x"],
+        "bscan_start_y": _image_level + ["photo_locations", 0, "start", "y"],
+        "bscan_end_x": _image_level + ["photo_locations", 0, "end", "x"],
+        "bscan_end_y": _image_level + ["photo_locations", 0, "end", "y"],
     }
     
     def __init__(self):
@@ -94,11 +99,16 @@ class CrystalEyeParser(MetadataParserJSON):
     
 class CrystalEyeParserCSV(MetadataParserCSV):
     _base_col_map = {
+        "n_images": "number_of_images",
         "group": "group",
         "source_id": "source_id",
         "modality": "modality",
         "image_location": "file_path",
-        "n_images": "number_of_images"
+        
+        "bscan_start_x": "bscan_location_start_x",
+        "bscan_start_y": "bscan_location_start_y",
+        "bscan_end_x": "bscan_location_end_x",
+        "bscan_end_y": "bscan_location_end_y",
     }
     
     def __init__(self, column_headings={}):
@@ -123,7 +133,7 @@ class CrystalEyeParserCSV(MetadataParserCSV):
 def load_record_from_json_CE(metadata_file_path, format=None):
     
     import json
-    file_path = path_to_record_folder
+    file_path = metadata_file_path
     if not file_path.endswith(".json"):
         file_path = os.path.join(file_path, "metadata.json")
     with open(metadata_file_path, 'r') as f:

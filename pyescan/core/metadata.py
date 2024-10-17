@@ -104,8 +104,13 @@ class MetadataParserJSON(MetadataParser):
     # TODO: Make a way to automatically register these paths
     def _get_by_path(self, metadata_record, path, root=None):
         pos = root or metadata_record.raw
+
         for index in path:
-            pos = pos[index]
+            try:
+                pos = pos[index]
+            except:
+                raise Exception(f"Unexpected element when parsing metadata, tried key {index}," +\
+                                "but was not found in {pos}")
         return pos
 
     def _get_path(self, attribute_name, view_info):
@@ -114,8 +119,9 @@ class MetadataParserJSON(MetadataParser):
     def _map_path(self, path, view_info):
         mapped_path = list()
         for p in path:
-            if p.startswith('{') and p.endswith('}'):
-                p = view_info[p.strip('{}')]
+            if isinstance(p, str):
+                if p.startswith('{') and p.endswith('}'):
+                    p = view_info[p.strip('{}')]
             mapped_path.append(p)
         return mapped_path
         
