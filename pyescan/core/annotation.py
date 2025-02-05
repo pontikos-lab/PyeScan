@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from cached_property import cached_property
+import math
 
 from .image import LazyImage, ImageVolume
 from .utils import ArrayView
@@ -22,7 +23,8 @@ class MaskImage(LazyImage):
     @property
     def image(self):
         # Add exception for Missing filepath as we don't want to throw exception
-        if self._file_location is None:
+        #if self._file_location is None or math.isnan(self._file_location):
+        if not isinstance(self._file_location, str):
             return None
         return super().image
 

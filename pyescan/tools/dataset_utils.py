@@ -9,12 +9,12 @@ def _flatten_dict(dict_in, name=""):
     if type(dict_in) is dict:
         # Recursive case
         for k, v in dict_in.items():
-            dict_out.update(flatten_dict(v, name="{}_{}".format(name,k) if name else k))
+            dict_out.update(_flatten_dict(v, name="{}_{}".format(name,k) if name else k))
     else:
         dict_out[name] = dict_in
     return dict_out
 
-def _process_pe_metadata(identifier_dict, skip_image_level=False):
+def _process_pe_metadata(metadata, identifier_dict, skip_image_level=False):
     # Takes metadata json format and processes into individual rows
     # identifier dict is mapping to uniquely identify scan (e.g. from file structure)
     
@@ -46,7 +46,7 @@ def _process_pe_metadata(identifier_dict, skip_image_level=False):
         scan_data['number_of_images'] = len(scan['contents'])
 
         for attr in ['size', 'dimensions_mm', 'resolutions_mm']:
-            scan_data.update(flatten_dict(scan[attr], attr))
+            scan_data.update(_flatten_dict(scan[attr], attr))
 
         if skip_image_level:
             scan_records.append(scan_data)
@@ -65,7 +65,7 @@ def _process_pe_metadata(identifier_dict, skip_image_level=False):
 
                 if image.get('photo_locations'):
                     locations = image['photo_locations'][0]
-                    image_data.update(flatten_dict(locations, 'bscan_location'))
+                    image_data.update(_flatten_dict(locations, 'bscan_location'))
                 scan_records.append(image_data)
     return scan_records
 
@@ -92,7 +92,7 @@ def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True
 
         with open(os.path.join(dirpath, 'metadata.json'), 'r') as f:
             metadata = json.load(f)
-            scan_records.extend(_process_pe_metadata(file_structure_dict, skip_image_level))
+            scan_records.extend(_process_pe_metadata(metadata, file_structure_dict, skip_image_level))
 
         for filename in filenames:
 
@@ -105,7 +105,7 @@ def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True
 
             file_records.append({"file_path": filepath,
                                  "file_name": filename,
-                                 "scan_uid": UID_path + "/" + source_id,
+                                 #"scan_uid": UID_path + "/" + source_id,
                                  "bscan_index": bscan_index })
             
         pbar.set_postfix({'scans_found': len(scan_records)})
