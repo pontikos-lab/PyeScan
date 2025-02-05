@@ -115,7 +115,8 @@ for idx, row in tqdm(df.iterrows()):
     results.append(result['computed_stats'])
     
 df_stats = pd.DataFrame(results)
-df_stats```
+df_stats
+```
 
 New metrics can also be added - there is a function wrapper provided for doing this, see `pyescan.metrics.metrics.py` for examples (documentation to follow).
 
