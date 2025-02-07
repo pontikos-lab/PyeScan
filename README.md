@@ -7,7 +7,7 @@ PyeScan is a python library for streamlining the process of working with retinal
 
 Installation is pretty standard
 ```
-git clone https://github.com/Moorfields-Reading-Centre/PyeScan.git
+git clone https://github.com/pontikos-lab/PyeScan.git
 cd PyeScan/
 pip install -e .
 ```
