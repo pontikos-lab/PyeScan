@@ -89,6 +89,9 @@ def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True
         file_structure_keys = file_structure.split("/")
         file_structure_elems = dirpath.split('/')[-len(file_structure_keys):]
         file_structure_dict = dict(zip(file_structure_keys, file_structure_elems))
+        
+        UID_path = "/".join(file_structure_elems)
+    
 
         with open(os.path.join(dirpath, 'metadata.json'), 'r') as f:
             metadata = json.load(f)
@@ -105,7 +108,7 @@ def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True
 
             file_records.append({"file_path": filepath,
                                  "file_name": filename,
-                                 #"scan_uid": UID_path + "/" + source_id,
+                                 "scan_uid": UID_path + "/" + source_id,
                                  "bscan_index": bscan_index })
             
         pbar.set_postfix({'scans_found': len(scan_records)})

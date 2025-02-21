@@ -52,12 +52,13 @@ class LazyImage():
         
     @property
     def image(self):
-        if self._image is None:
+        if not self.loaded:
             self.load()
         return self._image
     
     @property
     def data(self):
+        if self.image is None: return None # Note image vs _image
         return np.array(self.image)
     
 

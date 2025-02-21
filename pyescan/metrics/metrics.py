@@ -136,7 +136,7 @@ def _get_quadrant_masks_enface(
         mask_height_px: Stat[int],
         fovea_enface_x: Pred[int],
         fovea_enface_y: Pred[int]
-    ) -> Tuple[Spec[np.array]]:
+    ) -> Tuple[Spec[np.array], Spec[np.array], Spec[np.array], Spec[np.array]]:
     import numpy as np
     # Should probably normalise fovea position by actual image size...
 
@@ -155,22 +155,26 @@ def _get_quadrant_masks_enface(
     masks[2][upper_left & upper_right] = 1.0 # Lower
     masks[3][upper_left & ~upper_right] = 1.0 # left (as viewed)
     
-    quadrant_masks_enface = masks
-    return quadrant_masks_enface,
+    quadrant_mask_enface_superior, quadrant_mask_enface_dexter, \
+    quadrant_mask_enface_inferior, quadrant_mask_enface_sinister = masks
+    return ( quadrant_mask_enface_superior,
+             quadrant_mask_enface_dexter,
+             quadrant_mask_enface_inferior,
+             quadrant_mask_enface_sinister )
 
-@pyescan_metric()
+@pyescan_metric(
+    requires=["spec:mask", "stat:quadrant_mask_enface_<quadrant>"],
+    returns=["pixel_count_enface_<quadrant>"],
+    parameters = ["quadrant"],
+)
 def get_pixel_count_by_quadrant_enface(
         mask: Spec[np.array],
-        quadrant_masks_enface: Spec[np.array],
+        quadrant_mask_enface: Spec[np.array],
+        quadrant: str,
     ) -> Tuple[Stat[int], Stat[int], Stat[int], Stat[int]]:
-    results = list()
-    for cut_mask in quadrant_masks_enface:
-        masked_img = mask * cut_mask
-        result = masked_img.sum()
-        results.append(result)
-        
-    pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior = results
-    return pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior
+    masked_img = mask * quadrant_mask_enface
+    result = masked_img.sum()
+    return pixel_count,
 
 @pyescan_metric(
     requires=["spec:mask", "stat:distance_mask_enface_<diameter>mm"],
@@ -184,37 +188,27 @@ def get_pixel_count_by_distance_enface(
     ) -> Tuple[Stat[int]]:
     masked_img = mask * distance_mask_enface
     pixel_count = masked_img.sum()
-        
     return pixel_count,
 
 @pyescan_metric(
     requires=[
         "spec:mask",
         "spec:distance_mask_enface_<diameter>mm",
-        "spec:quadrant_masks_enface"
+        "spec:quadrant_mask_enface_<quadrant>"
     ],
-    returns=[
-        "pixel_count_enface_<diameter>mm_superior",
-        "pixel_count_enface_<diameter>mm_dexter",
-        "pixel_count_enface_<diameter>mm_inferior",
-        "pixel_count_enface_<diameter>mm_sinister",
-    ],
-    parameters = ["diameter"],
+    returns=["pixel_count_enface_<diameter>mm_<quadrant>"],
+    parameters = ["diameter", "quadrant"],
 )
 def get_pixel_count_by_distance_quadrant_enface(
         mask,
         distance_mask_enface: Spec[np.array],
-        quadrant_masks_enface: Spec[np.array],
+        quadrant_mask_enface: Spec[np.array],
         diameter: float,
-    ) -> Tuple[Stat[int], Stat[int], Stat[int], Stat[int]]:
-    results = list()
-    for cut_mask in quadrant_masks_enface:
-        masked_img = mask * cut_mask * distance_mask_enface
-        result = masked_img.sum()
-        results.append(result)
-        
-    pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior = results
-    return pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior
+        quadrant: str,
+    ) -> Tuple[Stat[int]]:
+    masked_img = mask * distance_mask_enface * quadrant_mask_enface
+    pixel_count = masked_img.sum()
+    return pixel_count,
 
 
 def _get_circle_line_intersection(circle_centre, radius, line_start, line_end):
@@ -292,7 +286,7 @@ def _get_quadrant_masks_oct(
         mask_height_px: Stat[int],
         fovea_enface_x: Pred[int],
         fovea_enface_y: Pred[int],
-    ) -> Tuple[Spec[np.array]]:
+    ) -> Tuple[Spec[np.array], Spec[np.array], Spec[np.array], Spec[np.array]]:
     import numpy as np
 
     # Get bscan start and end positions of current b-scan
@@ -340,22 +334,26 @@ def _get_quadrant_masks_oct(
     masks[1,...] = upper_left * (1-upper_right) # Right (as viewed)
     masks[2,...] = (1-upper_left) * (1-upper_right) # Lower
     masks[3,...] = (1-upper_left) * upper_right # left (as viewed)
-    quadrant_masks_oct = masks
-    return quadrant_masks_oct, 
+    quadrant_mask_oct_superior, quadrant_mask_oct_dexter, \
+    quadrant_mask_oct_inferior, quadrant_mask_oct_sinister = masks
+    return ( quadrant_mask_oct_superior,
+             quadrant_mask_oct_dexter,
+             quadrant_mask_oct_inferior,
+             quadrant_mask_oct_sinister )
 
-@pyescan_metric()
+@pyescan_metric(
+    requires=["spec:mask", "stat:quadrant_mask_oct_<quadrant>"],
+    returns=["pixel_count_oct_<quadrant>"],
+    parameters = ["quadrant"],
+)
 def get_pixel_count_by_quadrant_oct(
         mask: Spec[np.array],
-        quadrant_masks_oct: Spec[np.array],
-    ) -> Tuple[Stat[int], Stat[int], Stat[int], Stat[int]]:
-    results = list()
-    for cut_mask in quadrant_masks_oct:
-        masked_img = mask * cut_mask
-        result = masked_img.sum()
-        results.append(result)
-        
-    pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior = results
-    return pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior
+        quadrant_mask_oct: Spec[np.array],
+        quadrant: str,
+    ) -> Tuple[Stat[int]]:
+    masked_img = mask * quadrant_mask_oct
+    pixel_count = masked_img.sum()
+    return pixel_count,
 
 @pyescan_metric(
     requires=["spec:mask", "stat:distance_mask_oct_<diameter>mm"],
@@ -376,28 +374,21 @@ def get_pixel_count_by_distance_oct(
     requires=[
         "spec:mask",
         "spec:distance_mask_oct_<diameter>mm",
-        "spec:quadrant_masks_oct"
+        "spec:quadrant_mask_oct_<quadrant>"
     ],
     returns=[
-        "pixel_count_oct_<diameter>mm_superior",
-        "pixel_count_oct_<diameter>mm_dexter",
-        "pixel_count_oct_<diameter>mm_inferior",
-        "pixel_count_oct_<diameter>mm_sinister",
+        "pixel_count_oct_<diameter>mm_<quadrant>",
     ],
-    parameters = ["diameter"],
+    parameters = ["diameter", "quadrant"],
 )
 def get_pixel_count_by_distance_quadrant_oct(
         mask,
         distance_mask_oct: Spec[np.array],
-        quadrant_masks_oct: Spec[np.array],
+        quadrant_mask_oct: Spec[np.array],
         diameter: float,
-    ) -> Tuple[Stat[int], Stat[int], Stat[int], Stat[int]]:
-    results = list()
-    for cut_mask in quadrant_masks_oct:
-        masked_img = mask * cut_mask * distance_mask_oct
-        result = masked_img.sum()
-        results.append(result)
-        
-    pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior = results
-    return pixel_count_superior, pixel_count_dexter, pixel_count_sinister, pixel_count_inferior
+        quadrant: str,
+    ) -> Tuple[Stat[int],]:
+    masked_img = mask * distance_mask_oct * quadrant_mask_oct
+    pixel_count = masked_img.sum()
+    return pixel_count,
 

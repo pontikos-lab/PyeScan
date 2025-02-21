@@ -1,5 +1,17 @@
 import numpy as np
 
+def _stack_arrays_with_empties(array_list, default_value=0):
+    # Get shape from first non-None array
+    shape = next(arr.shape for arr in array_list if arr is not None)
+    
+    # Replace None with default arrays
+    processed_arrays = [
+        arr if arr is not None else np.full(shape, default_value) 
+        for arr in array_list
+    ]
+    
+    return np.stack(processed_arrays, axis=0)
+
 class ArrayView():
     # Helper wrapper class for lists of objects which can be converted to data
     def __init__(self, items):
@@ -45,7 +57,7 @@ class ArrayView():
     
     @property
     def data(self):
-        return np.array([ np.array(item) for item in self._items() ])
+        return _stack_arrays_with_empties([ item.data for item in self._items() ])
     
     def __array__(self):
         return self.data
