@@ -1,6 +1,9 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 from cached_property import cached_property
 import math
+from numpy.typing import NDArray
+from PIL import Image as PILImage
+from typing import Any, List, Optional
 
 from .image import LazyImage, ImageVolume
 from .utils import ArrayView
@@ -9,19 +12,19 @@ class ModelInfo():
     """
     Datastructure for holding information about a model
     """
-    def __init__(self):
-        self.name = None
+    def __init__(self, name: str = None):
+        self.name:str = name
     
 class FeatureInfo():
     """
     Datastructure for holding information about a model 
     """
     def __init__(self):
-        self.name = None
+        self.name: str = None
         
 class MaskImage(LazyImage):
     @property
-    def image(self):
+    def image(self) -> PILImage:
         # Add exception for Missing filepath as we don't want to throw exception
         #if self._file_location is None or math.isnan(self._file_location):
         if not isinstance(self._file_location, str):
@@ -34,25 +37,25 @@ class MaskVolume(ArrayView):
     """
     Maybe slightly pointless wrapper for array of bscans
     """
-    def __init__(self, masks):
+    def __init__(self, masks: List[MaskImage]):
         self._masks = masks
         
-    def _items(self):
+    def _items(self) -> List[MaskImage]:
         return self._masks
             
     def _repr_png_(self):
         return self._masks[len(self._masks)//2]._repr_png_()
     
-    def preload(self):
+    def preload(self) -> None:
         for mask in self._masks:
             mask.preload()
         
-    def unload(self):
+    def unload(self) -> None:
         for mask in self._masks:
             mask.unload()
 
     @property
-    def images(self):
+    def images(self) -> ImageVolume:
         return ImageVolume([mask.image for mask in self._masks])
     
 
@@ -60,9 +63,12 @@ class Annotation(metaclass=ABCMeta):
     """
     Base class for holding annotation information
     """
-    def __init__(self, basescan=None, feature=None, modelinfo=None):
+    def __init__(self,
+                 basescan: "BaseScan" = None,
+                 name: Optional[str] = None,
+                 modelinfo: Optional[ModelInfo] = None):
         self._scan = basescan
-        self._feature = feature
+        self._name = name
         self._modelinfo = modelinfo
         
         self._mask = None
@@ -85,7 +91,7 @@ class Annotation(metaclass=ABCMeta):
         raise NotImplementedError()
         
     @abstractproperty
-    def data(self):
+    def data(self) -> NDArray:
         raise NotImplementedError()
     
     
@@ -93,7 +99,7 @@ class AnnotationEnface(Annotation):
     """
     Base class for holding annotation information
     """
-    def __init__(self, mask, *args, **kwargs):
+    def __init__(self, mask: MaskImage, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._mask = mask #MaskImage
         
@@ -102,23 +108,23 @@ class AnnotationOCT(Annotation):
     """
     Base class for holding annotation information
     """
-    def __init__(self, masks, *args, **kwargs):
+    def __init__(self, masks: MaskVolume, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._masks = masks #MaskVolume
+        self._masks = masks
         
     def _repr_png_(self):
         return self._masks._repr_png_()
     
-    def _ipython_display_(self):
+    def _ipython_display_(self) -> None:
         from IPython.display import display, Image
         display(self._build_display_widget())
         
     @property
-    def images(self):
+    def images(self) -> ImageVolume:
         return self._masks.images
     
     @property
-    def data(self):
+    def data(self) -> NDArray:
         return self._masks.data
    
     def _build_display_widget(self):

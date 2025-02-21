@@ -1,6 +1,7 @@
 import numpy as np
 import PIL.Image
-from typing import List, Dict, Tuple, Any, Optional
+from typing import Any, Dict, List, Optional, Tuple
+
 from .registry import pyescan_metric, Meta, Stat, Spec, Pred
 
 @pyescan_metric()

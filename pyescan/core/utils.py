@@ -1,6 +1,8 @@
 import numpy as np
+from numpy.typing import NDArray
+from typing import Any, List
 
-def _stack_arrays_with_empties(array_list, default_value=0):
+def _stack_arrays_with_empties(array_list: List[NDArray], default_value: float = 0) -> NDArray:
     # Get shape from first non-None array
     shape = next(arr.shape for arr in array_list if arr is not None)
     
@@ -14,17 +16,17 @@ def _stack_arrays_with_empties(array_list, default_value=0):
 
 class ArrayView():
     # Helper wrapper class for lists of objects which can be converted to data
-    def __init__(self, items):
+    def __init__(self, items: List[Any]):
         self._items_list = items
         
-    def _items():
+    def _items(self) -> List[Any]:
         # Overwrite to return item class
         return self._items_list
       
     def __len__(self):
         return len(self._items())
     
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         if index is Ellipsis:
             return self.data
         elif isinstance(index, tuple):
@@ -56,7 +58,7 @@ class ArrayView():
         return f"{self.__class__.__name__}({repr(self._items())})"
     
     @property
-    def data(self):
+    def data(self) -> NDArray:
         return _stack_arrays_with_empties([ item.data for item in self._items() ])
     
     def __array__(self):

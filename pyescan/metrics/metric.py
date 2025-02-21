@@ -1,8 +1,11 @@
-from typing import Callable, List, Dict, Tuple, Any, Optional, Literal, Union, Annotated
+from typing import Any, Callable, Dict, List, Optional 
 
 class Metric:
-    def __init__(self, name: str, fn: callable, parameters: List[str], 
-                 requires: List[str], returns: List[str], 
+    def __init__(self, name: str,
+                 fn: Callable[..., Any],
+                 parameters: List[str], 
+                 requires: List[str],
+                 returns: List[str], 
                  defaults: Optional[Dict[str, Any]] = None,
                  input_by_name: bool = True):
         self.name = name

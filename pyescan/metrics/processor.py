@@ -1,5 +1,6 @@
-from typing import Callable, List, Dict, Tuple, Any, Optional, Literal, Union, Annotated
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union 
 import re
+
 from .metric import Metric
 
 #TODO: Add a proper trace isntead of relying on cache
@@ -86,7 +87,7 @@ class MetricProcessor:
                          for template in metric.returns_template ]
         return [ name for name in return_names if not name is None ]
     
-    def _resolve_template(self, template, params: Dict[str,Any] = {}) -> str:
+    def _resolve_template(self, template: str, params: Dict[str,Any] = {}) -> str:
         # Get rid of prefix
         template = template.split(":",1)[-1]
         

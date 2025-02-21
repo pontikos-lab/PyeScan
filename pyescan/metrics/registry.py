@@ -1,6 +1,7 @@
-from inspect import signature, Parameter, getsource
-from typing import Callable, List, Dict, Tuple, Any, Optional, Literal, TypeVar, Union, get_type_hints, Annotated
 import ast
+from inspect import signature, Parameter, getsource
+from typing import Annotated, Any, Callable, Dict, List, Literal, Optional, Tuple, TypeVar, Union
+from typing import get_type_hints
 
 from .metric import Metric
 
@@ -11,8 +12,8 @@ Pred = Annotated[T, "pred"]
 Spec = Annotated[T, "spec"]
 
 class MetricRegistry:
-    def __init__(self):
-        self._metrics: Dict[Metric] = {}
+    def __init__(self, metrics: Optional[Dict[str, Metric]] = None):
+        self._metrics: Dict[str, Metric] = metrics or {}
     
     @property
     def metrics(self) -> List[Metric]:

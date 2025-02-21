@@ -1,19 +1,21 @@
-from .image import ImageVolume
+import numpy as np
+from numpy.typing import NDArray
+from PIL import Image as PILImage
+from skimage.transform import ProjectiveTransform, warp
+from typing import Any, Dict, List, Optional, Union
+
+from .image import BaseImage, ImageVolume
 from .scan import BaseScan, SingleImageScan
 from .scan_enface import EnfaceScan
 from .utils import ArrayView
 from .visualisation import generate_distinct_colors, oct_display_widget, overlay_rgba_images, overlay_masks, render_volume_data
 
 
-import numpy as np
-from PIL import Image as PILImage
-from skimage.transform import ProjectiveTransform, warp
-
 class BScan(SingleImageScan):
     """
     Class for single OCT b-scan
     """
-    def __init__(self, image, bscan_index, *args, **kwargs):
+    def __init__(self, image: BaseImage, bscan_index: int, *args, **kwargs):
         super().__init__(image, *args, **kwargs)
         self._scan_index = bscan_index
 
@@ -24,22 +26,22 @@ class BScanArray(ArrayView):
     def __init__(self, bscans):
         self._bscans = bscans #TODO: Check type
         
-    def _items(self):
+    def _items(self) -> List[BScan]:
         return self._bscans
             
     def _repr_png_(self):
         return self._bscans[len(self._bscans)//2]._repr_png_()
     
-    def preload(self):
+    def preload(self) -> None:
         for bscan in self._bscans:
             bscan.preload()
         
-    def unload(self):
+    def unload(self) -> None:
         for bscan in self._bscans:
             bscan.unload()
 
     @property
-    def images(self):
+    def images(self) -> ImageVolume:
         return ImageVolume([bscan.image for bscan in self._bscans])
     
     
@@ -65,7 +67,7 @@ class OCTScan(BaseScan):
         from IPython.display import display, Image
         display(self._build_display_widget())
     
-    def __getitem__(self, index):
+    def __getitem__(self, index: int):
         return self._bscans[index]
     
     def __len__(self):
@@ -83,33 +85,34 @@ class OCTScan(BaseScan):
         self._scans.unload()
         
     @property
-    def image(self):
+    def image(self) -> BaseImage:
         return self._enface.image
     
     @property
-    def images(self):
+    def images(self) -> ImageVolume:
         return self._bscans.images
     
     @property
-    def data(self):
+    def data(self) -> NDArray:
         return self._bscans.data
     
     @property
-    def shape(self):
+    def shape(self): #TODO
         return self._bscans.data.shape
     
-    def plot_image(self, include_annotations=False):
+    def plot_image(self, include_annotations=False) -> None:
         raise NotImplementedError()
 
     @property
-    def enface(self):
+    def enface(self) -> EnfaceScan:
         return self._enface
 
     @property
-    def bscans(self):
+    def bscans(self) -> BScanArray:
         return self._bscans
     
-    def get_bscan_enface_locations(self):
+    def get_bscan_enface_locations(self) -> NDArray:
+        """ Returns an Nx2 array of 2D (x,y) points with the start and end position for each bscan line """
         locations = []
         for bscan in self._bscans:
             location_start = (bscan.metadata.bscan_start_x, bscan.metadata.bscan_start_y)
@@ -117,7 +120,7 @@ class OCTScan(BaseScan):
             locations.append((location_start, location_end))
         return np.array(locations)
     
-    def _get_enface_transform(self, input_shape=None):
+    def _get_enface_transform(self, input_shape=None) -> ProjectiveTransform:
         """ Input shape should be h x w """
         bscan_locations = self.get_bscan_enface_locations()
         destination_pts = np.float32([bscan_locations[0,0],  bscan_locations[0,1],
@@ -136,15 +139,15 @@ class OCTScan(BaseScan):
         tform.estimate(source_pts, destination_pts)
         return tform
 
-    def project_to_enface(self, points):
+    def project_to_enface(self, points: NDArray) -> NDArray:
         tform = self._get_enface_transform()
         return tform(np.array(points))
 
-    def project_from_enface(self, points):
+    def project_from_enface(self, points: NDArray) -> NDArray:
         tform = self._get_enface_transform()
         return tform.inverse(np.array(points))
 
-    def transform_to_enface(self, image):
+    def transform_to_enface(self, image: NDArray) -> NDArray:
         image = np.array(image)
         tform = self._get_enface_transform(image.shape)
 
@@ -155,14 +158,16 @@ class OCTScan(BaseScan):
 
         return warped[::-1,...] # reverse due to different indexing of y
         
-    def _annotated_bscan(self, bscan_index, features=None):
-
+    def _annotated_bscan(self, bscan_index: int, features=None) -> NDArray:
         image = self.images[bscan_index]
         masks = [annotation.images[bscan_index] for annotation in self.annotations.values()]
         annotated_image = overlay_masks(image, masks, feature_names=self.annotations.keys(), alpha=0.5)
-        return annotated_image
+        return annotated_image # Should maybe conver to PIL image
     
-    def _annotated_enface(self, heatmap=True, contours=True, alpha=0.5):
+    def _annotated_enface(self,
+                          heatmap: bool = True,
+                          contours: bool = True,
+                          alpha: float = 0.5) -> PILImage.Image:
 
         # Start with enface image
         image = self.enface.image
