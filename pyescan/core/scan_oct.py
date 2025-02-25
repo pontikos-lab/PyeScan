@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 from .image import BaseImage, ImageVolume
 from .scan import BaseScan, SingleImageScan
 from .scan_enface import EnfaceScan
-from .utils import ArrayView
+from .utils import ArrayView, _pad_array
 from .visualisation import generate_distinct_colors, oct_display_widget, overlay_rgba_images, overlay_masks, render_volume_data
 
 
@@ -179,7 +179,8 @@ class OCTScan(BaseScan):
         # Create an empty array for the overlay
         projected_masks = []
         for annotation, color in zip(self.annotations.values(), colors):
-            rendered_mask = render_volume_data(annotation.data, color=color, heatmap=heatmap, contours=contours)
+            data= _pad_array(annotation.data, len(self))
+            rendered_mask = render_volume_data(data, color=color, heatmap=heatmap, contours=contours)
             projected_mask = self.transform_to_enface(rendered_mask) * 255
             projected_mask[...,3] *= alpha
             projected_masks.append(projected_mask)

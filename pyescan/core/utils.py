@@ -14,6 +14,20 @@ def _stack_arrays_with_empties(array_list: List[NDArray], default_value: float =
     
     return np.stack(processed_arrays, axis=0)
 
+def _pad_array(data: NDArray, n: int) -> NDArray: # TODO Axis
+    m = data.shape[0]
+    
+    if n > m:
+        # Padding needed - create zeros to add
+        padding = np.zeros((n - m,) + data.shape[1:], dtype=data.dtype)
+        # Concatenate along first axis
+        result = np.concatenate([data, padding], axis=0)
+    else:
+        # Truncate if n < a
+        result = data[:n]
+        
+    return result
+
 class ArrayView():
     # Helper wrapper class for lists of objects which can be converted to data
     def __init__(self, items: List[Any]):
