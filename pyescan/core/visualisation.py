@@ -224,9 +224,9 @@ def render_volume_data(data, color=(255, 0, 0), heatmap=True, contours=True, fig
     thickness = data.mean(axis=1)
 
     if heatmap:
-        im = ax.imshow(thickness, aspect='auto', cmap=cmap, alpha=mask*1.0)
+        im = ax.imshow(thickness, aspect='auto', cmap=cmap, interpolation='nearest', alpha=mask*1.0)
     else:
-        im = ax.imshow(mask, aspect='auto', cmap=cmap, alpha=mask*1.0)
+        im = ax.imshow(mask, aspect='auto', cmap=cmap, interpolation='nearest', alpha=mask*1.0)
         
     #im_type = im_type.lower()
     #if im_type == "contours": # Causes havok with flipping

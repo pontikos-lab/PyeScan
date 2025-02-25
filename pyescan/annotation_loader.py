@@ -1,11 +1,22 @@
 from .core.annotation import MaskImage, MaskVolume, AnnotationOCT
 from .tools.dataset_utils import summarise_dataset
 
+from PIL import Image as PILImage
+
 def _build_annotation_from_file_paths(file_paths):
     masks = list()
     for i, file_path in enumerate(file_paths):
         #mask_img = MaskImage(file_path)#None if i==3 else file_path)
-        mask_img = MaskImage(None if i==3 else file_path)
+        mask_img = MaskImage(file_path=file_path)
+        masks.append(mask_img)
+    mask_array = MaskVolume(masks)
+    annotation = AnnotationOCT(masks=mask_array)
+    return annotation
+
+def _build_annotation_from_array(data):
+    masks = list()
+    for i, bscan_data in enumerate(data):
+        mask_img = MaskImage(raw_image=PILImage.fromarray(bscan_data))
         masks.append(mask_img)
     mask_array = MaskVolume(masks)
     annotation = AnnotationOCT(masks=mask_array)

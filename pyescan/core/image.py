@@ -13,15 +13,16 @@ class LazyImage(BaseImage):
     """
     Holder for single image to enable lazy loading
     """
-    def __init__(self, file_path: str = None, mode: str = None):
+    def __init__(self, file_path: str = None, mode: str = None, raw_image: PILImage.Image = None):
         self._source_type = None # For future use to manage different types of loading
         self._file_location = file_path
         
         self._color_mode = mode
         
         # Set initial params
-        self._raw_image: Optional[PILImage] = None
+        self._raw_image: Optional[PILImage] = raw_image
         self._image: Optional[PILImage] = None
+        
         self.loaded = False # Currently checking for _image is None
 
     def __getattr__(self, attr: str) -> Any:
@@ -37,7 +38,8 @@ class LazyImage(BaseImage):
     def load(self, force: bool = False) -> None:
         #TODO: add proper debug logging
         #print("Loaded image", self._file_location)
-        self._raw_image = PILImage.open(self._file_location)
+        if self._file_location:
+            self._raw_image = PILImage.open(self._file_location)
         self._image = self._raw_image
         if self._color_mode:
             self._image = self._image.convert(mode=self._color_mode)
@@ -51,7 +53,8 @@ class LazyImage(BaseImage):
         if self._image is not None:
             self._image.close()
             self._image = None
-            self._raw_image = None
+            if self._file_location:
+                self._raw_image = None
         self.loaded = False
         
     @property

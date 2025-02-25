@@ -160,7 +160,7 @@ class OCTScan(BaseScan):
         
     def _annotated_bscan(self, bscan_index: int, features=None) -> NDArray:
         image = self.images[bscan_index]
-        masks = [annotation.images[bscan_index] for annotation in self.annotations.values()]
+        masks = [annotation.images.get(bscan_index, None) for annotation in self.annotations.values()]
         annotated_image = overlay_masks(image, masks, feature_names=self.annotations.keys(), alpha=0.5)
         return annotated_image # Should maybe conver to PIL image
     
@@ -175,7 +175,6 @@ class OCTScan(BaseScan):
 
         # Generate colors if not provided
         colors = generate_distinct_colors(len(self.annotations))
-        print(colors)
 
         # Create an empty array for the overlay
         projected_masks = []

@@ -12,7 +12,7 @@ cd PyeScan/
 pip install -e .
 ```
 
-N.B: Dependencies aren't fully set up yet (so you may have to isntall more packages with `pip` as needed).
+N.B: Dependencies aren't fully set up yet (so you may have to install more packages with `pip` as needed).
 
 Otherwise you can just run things in the root level folder of the repo if you want to just test things out.
 
@@ -168,4 +168,5 @@ Main items:
 - Type annotations/hints
 - Rendering of annotations on enface with contours/cloropleth for thickness
 - ~~Annotations/masks~~ (Partially) Done!
+- requirements.txt
 - Port over functionality from PEExportBase

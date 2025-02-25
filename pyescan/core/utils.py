@@ -63,3 +63,9 @@ class ArrayView():
     
     def __array__(self):
         return self.data
+    
+    def get(self, index:int, default: Any = None):
+        if index >= len(self._items()):
+            return default
+        else:
+            return self[index]
