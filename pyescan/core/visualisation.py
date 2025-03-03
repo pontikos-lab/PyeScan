@@ -58,11 +58,19 @@ def draw_bscan_lines(enface_image, bscan_positions, bscan_index=None):
         width = 7 if i == bscan_index else 3
         
         # Fix indexing from bottom left to top left
-        pos =  ( (bscan_position[0][0], height - bscan_position[0][1]),
-                 (bscan_position[1][0], height - bscan_position[1][1]) )
+        #pos =  ( (bscan_position[0][0], height - bscan_position[0][1]),
+        #         (bscan_position[1][0], height - bscan_position[1][1]) )
+        
+        pos =  ( (bscan_position[0][0], bscan_position[0][1]),
+                 (bscan_position[1][0], bscan_position[1][1]) )
         draw.line(pos, fill=color, width=width)
     
     return enface_image
+
+def enface_display_widget(image, width=320, height=320):
+    encoded_enface = _encode_image(image)
+    w_image_enface = widgets.Image(value=encoded_enface, width=width, height=height)
+    return w_image_enface
 
 def oct_display_widget(images, enface_image, bscan_locations=None, width=640, height=320, enface_size=320):
 

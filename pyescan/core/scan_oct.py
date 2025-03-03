@@ -1,3 +1,4 @@
+from IPython.display import display
 import numpy as np
 from numpy.typing import NDArray
 from PIL import Image as PILImage
@@ -64,7 +65,6 @@ class OCTScan(BaseScan):
         return self._bscans._repr_png_()
     
     def _ipython_display_(self):
-        from IPython.display import display, Image
         display(self._build_display_widget())
     
     def __getitem__(self, index: int):
@@ -156,13 +156,14 @@ class OCTScan(BaseScan):
         height, width = self.enface.image.height, self.enface.image.width
         warped = warp(image.swapaxes(0, 1), tform.inverse, output_shape=(height, width))
 
-        return warped[::-1,...] # reverse due to different indexing of y
+        #return warped[::-1,...] # reverse due to different indexing of y
+        return warped
         
     def _annotated_bscan(self, bscan_index: int, features=None) -> NDArray:
         image = self.images[bscan_index]
         masks = [annotation.images.get(bscan_index, None) for annotation in self.annotations.values()]
         annotated_image = overlay_masks(image, masks, feature_names=self.annotations.keys(), alpha=0.5)
-        return annotated_image # Should maybe conver to PIL image
+        return annotated_image # Should maybe convert to PIL image
     
     def _annotated_enface(self,
                           heatmap: bool = True,
@@ -194,13 +195,13 @@ class OCTScan(BaseScan):
         result_image = PILImage.fromarray(result)
         return result_image
         
-    def _build_display_widget(self):
+    def _build_display_widget(self, enface_contours=True, enface_heatmap=True):
         from .visualisation import oct_display_widget
         if self.annotations:
             annotated_images = list()
             for i, _ in enumerate(self.images):
                 annotated_images.append(self._annotated_bscan(i))
-            enface_image = self._annotated_enface()
+            enface_image = self._annotated_enface(contours=enface_contours, heatmap=enface_heatmap)
         else:
             annotated_images = self.images
             enface_image = self.enface.image
