@@ -7,7 +7,7 @@ def _build_annotation_from_file_paths(file_paths): # TODO - move to annotation c
     masks = list()
     for i, file_path in enumerate(file_paths):
         #mask_img = MaskImage(file_path)#None if i==3 else file_path)
-        mask_img = MaskImage(file_path=file_path)
+        mask_img = MaskImage(file_path=file_path, mode='L')
         masks.append(mask_img)
     mask_array = MaskVolume(masks)
     annotation = AnnotationOCT(masks=mask_array)
@@ -16,7 +16,7 @@ def _build_annotation_from_file_paths(file_paths): # TODO - move to annotation c
 def _build_annotation_from_array(data): # TODO - move to annotation constructor
     masks = list()
     for i, bscan_data in enumerate(data):
-        mask_img = MaskImage(raw_image=PILImage.fromarray(bscan_data))
+        mask_img = MaskImage(raw_image=PILImage.fromarray(bscan_data), mode='L')
         masks.append(mask_img)
     mask_array = MaskVolume(masks)
     annotation = AnnotationOCT(masks=mask_array)

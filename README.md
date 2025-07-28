@@ -84,38 +84,24 @@ Loading can also be done using `load_annotation_from_folder` which works in the 
 
 ### Unified Metrics system
 
-`pyescan.metrics` contains a bunch of useful metrics which can be run to get various statistics. This is built into a centralised dependency system so that any intermediate requirments are automatically computed (and cached). These used to all be set up to run directly on dataframes via a dataframe row, howeveer this was inflexible, and not really compatible with the idea of pyescan.
+`pyescan.metrics` contains a bunch of useful metrics which can be run to get various statistics. This is built into a centralised dependency system so that any intermediate requirments are automatically computed (and cached). These used to all be set up to run directly on dataframes, howeveer this was inflexible, and not really compatible with the idea of pyescan.
 
-Example running on a dataframe:
+The new metric system is designed to be input agnostic, or rather they all simply take in a set of inputs (that they need to do the required caluclations) and output a set of results. The clever part is that, by using a consistent internal naming scheme, the metric processor is able to work out what maps to what, which means that if we want an output which is dependent on a complex chain of inputs, the processor can find the relavant functions automatically and cache the intermediate results. This also saves overhead as it means we cna run multiple metrics at once without having to recompute intermediate values (or reload files)!
+
+Example running the new system on a dataframe:
 ```python
-from pyescan.metrics.registry import PYESCAN_GLOBAL_METRICS
-print("Loaded metrics:")
-print("\n\n".join([str(metric) for metric in PYESCAN_GLOBAL_METRICS]))
-
-from pyescan.metrics.processor import MetricProcessor
-from pyescan.metrics.helpers import PandasRowWrapperHelper
-from tqdm.notebook import tqdm
+from pyescan.metrics.helpers import run_on_dataframe
 
 import pandas as pd
-df = pd.read_csv("EXAMPLE_CSV.csv")
+df = pd.read_csv(YOUR_PATH_HERE)
 
-processor = MetricProcessor(PYESCAN_GLOBAL_METRICS.metrics)
-metric, params = processor.get_metric_by_stat("pixel_count_oct_4.0mm_superior")
-print("Running", metric.name, "with params", params)
-    
-results = []
-traces = []
-for idx, row in tqdm(df.iterrows()):
-    col_map = {"file_path_mask": "file_path", "scan_width_px": "size_width", "scan_height_px": "size_height"}
+stats = ["pixel_count_oct_4.0mm_superior", "pixel_count_oct_4.0mm_inferior",
+         "pixel_count_oct_4.0mm_sinister", "pixel_count_oct_4.0mm_dexter"]
 
-    wrapped = PandasRowWrapperHelper(row, col_map)
-    result = processor._process_metric(wrapped, metric, params)
-    
-    traces.append(result['computed_metrics'])
-    results.append(result['computed_stats'])
-    
-df_stats = pd.DataFrame(results)
-df_stats
+col_map = {"file_path_mask": "file_path", "scan_width_px": "size_width", "scan_height_px": "size_height"}
+df_with_stats = run_on_dataframe(df, stats, col_map, auto_merge=True, named_only=False)
+
+df_with_stats
 ```
 
 New metrics can also be added - there is a function wrapper provided for doing this, see `pyescan.metrics.metrics.py` for examples (documentation to follow).

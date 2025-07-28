@@ -164,14 +164,14 @@ def _get_quadrant_masks_enface(row):
         center_x, center_y = im_w // 2, im_h //2
     
     y, x = np.ogrid[:im_h, :im_w]
-    upper_left = (y - center_y >= x - center_x)
-    upper_right = (y - center_y >= center_x - x)
+    upper_left  = (center_y - y >= x - center_x) # increasing y is bottom
+    upper_right = (center_y - y >= center_x - x) # increasing y is bottom
     
     masks = [ np.zeros((im_h, im_w)) for _ in range(4) ]
-    masks[0][~upper_left & ~upper_right] = 1.0 # Upper, increasing y is bottom
-    masks[1][~upper_left & upper_right] = 1.0 # Right (as viewed)
-    masks[2][upper_left & upper_right] = 1.0 # Lower
-    masks[3][upper_left & ~upper_right] = 1.0 # left (as viewed)
+    masks[0][ upper_left &  upper_right] = 1.0 # Upper, increasing y is bottom
+    masks[1][~upper_left &  upper_right] = 1.0 # Right (as viewed)
+    masks[2][~upper_left & ~upper_right] = 1.0 # Lower
+    masks[3][ upper_left & ~upper_right] = 1.0 # left (as viewed)
     
     return masks
 
@@ -225,7 +225,7 @@ def _get_quadrant_masks_oct(row):
     
     # Get B-scan's start/end points relative to fovea
     start_x, start_y = bscan_start_x - fovea_x, bscan_start_y - fovea_y
-    end_x, end_y = bscan_end_x - fovea_x, bscan_end_y - fovea_y
+    end_x, end_y = bscan_end_x - fovea_x, bscan_end_y - fovea_y 
 
     # Do co-ordinate shift w=y-x, z=y+x (equiv to rotation + scale)
     start_w, start_z = start_y - start_x, start_x + start_y
@@ -239,7 +239,7 @@ def _get_quadrant_masks_oct(row):
     v_intercept = - start_z / (end_z - start_z) # w-axis intercept
     if 0 <= v_intercept <= 1:
         x_intercept = int(v_intercept * (im_w - 1))
-        if end_z > start_z:
+        if end_z < start_z:
             upper_left[...,x_intercept:] = 1.
         else:
             upper_left[...,:x_intercept] = 1.
@@ -251,7 +251,7 @@ def _get_quadrant_masks_oct(row):
     v_intercept = - start_w / (end_w - start_w) # z-axis intercept
     if 0 <= v_intercept <= 1:
         x_intercept = int(v_intercept * (im_w - 1))
-        if end_w > start_w:
+        if end_w < start_w:
             upper_right[...,x_intercept:] = 1.
         else:
             upper_right[...,:x_intercept] = 1.
@@ -260,10 +260,10 @@ def _get_quadrant_masks_oct(row):
     
     # Idea - make masks for upper left and upper right and multiply them
     masks = [ np.zeros((im_h, im_w)) for _ in range(4) ]
-    masks[0] = upper_left * upper_right # Upper
-    masks[1] = upper_left * (1-upper_right) # Right (as viewed)
+    masks[0] = upper_left     * upper_right     # Upper
+    masks[1] = (1-upper_left) * upper_right     # Right (as viewed)
     masks[2] = (1-upper_left) * (1-upper_right) # Lower
-    masks[3] = (1-upper_left) * upper_right # left (as viewed)
+    masks[3] = upper_left     * (1-upper_right) # Left (as viewed)
     
     return masks
 

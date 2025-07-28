@@ -147,21 +147,21 @@ def _get_quadrant_masks_enface(
     center_x, center_y = fovea_enface_x, fovea_enface_y
     
     y, x = np.ogrid[:im_h, :im_w]
-    upper_left = (y - center_y >= x - center_x)
-    upper_right = (y - center_y >= center_x - x)
+    upper_left  = (center_y - y >= x - center_x) # increasing y is bottom
+    upper_right = (center_y - y >= center_x - x) # increasing y is bottom
     
     masks = [ np.zeros((im_h, im_w)) for _ in range(4) ]
-    masks[0][~upper_left & ~upper_right] = 1.0 # Upper, increasing y is bottom
-    masks[1][~upper_left & upper_right] = 1.0 # Right (as viewed)
-    masks[2][upper_left & upper_right] = 1.0 # Lower
-    masks[3][upper_left & ~upper_right] = 1.0 # left (as viewed)
+    masks[0][ upper_left &  upper_right] = 1.0 # Upper
+    masks[1][~upper_left &  upper_right] = 1.0 # Right (as viewed)
+    masks[2][~upper_left & ~upper_right] = 1.0 # Lower
+    masks[3][ upper_left & ~upper_right] = 1.0 # left (as viewed)
     
     quadrant_mask_enface_superior, quadrant_mask_enface_dexter, \
     quadrant_mask_enface_inferior, quadrant_mask_enface_sinister = masks
     return ( quadrant_mask_enface_superior,
              quadrant_mask_enface_dexter,
              quadrant_mask_enface_inferior,
-             quadrant_mask_enface_sinister )
+             quadrant_mask_enface_sinister ) # Explicit return for automatic naming
 
 @pyescan_metric(
     requires=["spec:mask", "stat:quadrant_mask_enface_<quadrant>"],
@@ -330,13 +330,10 @@ def _get_quadrant_masks_oct(
         upper_right[...] = 1.
     
     # Idea - make masks for upper left and upper right and multiply them
-    masks = np.zeros((4, mask_height_px, mask_width_px))
-    masks[0,...] = upper_left * upper_right # Upper
-    masks[1,...] = upper_left * (1-upper_right) # Right (as viewed)
-    masks[2,...] = (1-upper_left) * (1-upper_right) # Lower
-    masks[3,...] = (1-upper_left) * upper_right # left (as viewed)
-    quadrant_mask_oct_superior, quadrant_mask_oct_dexter, \
-    quadrant_mask_oct_inferior, quadrant_mask_oct_sinister = masks
+    quadrant_mask_oct_superior = upper_left     * upper_right     # Upper
+    quadrant_mask_oct_dexter   = (1-upper_left) * upper_right     # Right (as viewed)
+    quadrant_mask_oct_inferior = (1-upper_left) * (1-upper_right) # Lower
+    quadrant_mask_oct_sinister = upper_left     * (1-upper_right) # left (as viewed)
     return ( quadrant_mask_oct_superior,
              quadrant_mask_oct_dexter,
              quadrant_mask_oct_inferior,

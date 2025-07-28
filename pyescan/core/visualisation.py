@@ -48,7 +48,7 @@ def image_array_display_widget(images, width=320, height=320, return_slider=Fals
     else:
         return display_layout
 
-def draw_bscan_lines(enface_image, bscan_positions, bscan_index=None):
+def draw_bscan_lines(enface_image, bscan_positions, bscan_index=None, draw_pos=False):
     enface_image = enface_image.copy().convert("RGB")
     width, height = enface_image.size
     
@@ -64,6 +64,9 @@ def draw_bscan_lines(enface_image, bscan_positions, bscan_index=None):
         pos =  ( (bscan_position[0][0], bscan_position[0][1]),
                  (bscan_position[1][0], bscan_position[1][1]) )
         draw.line(pos, fill=color, width=width)
+    
+    if draw_pos:
+        draw.text((0,0), f'{bscan_index:d}')
     
     return enface_image
 
@@ -132,7 +135,7 @@ def overlay_rgba_images(image_list):
     
     return final_rgba.astype(np.uint8)
 
-def overlay_masks(image, masks, colors=None, feature_names=None, alpha=0.5):
+def overlay_masks(image, masks, colors=None, feature_names=None, alpha=0.5, max_height=None):
     """
     Overlay multiple binary masks on a grayscale image with different transparent colors.
     
@@ -151,6 +154,11 @@ def overlay_masks(image, masks, colors=None, feature_names=None, alpha=0.5):
     
     # Get image dimensions
     width, height = rgb_image.size
+
+    if max_height and height > max_height:
+        width,height  = int(max_height * width / height), max_height
+        rgb_image = rgb_image.resize((width, height), PILImage.NEAREST)
+        
     
     # Convert image to numpy array
     img_array = np.array(rgb_image)

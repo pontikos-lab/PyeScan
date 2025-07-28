@@ -12,10 +12,10 @@ class EnfaceScan(SingleImageScan):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-    def _annotated_enface(self, features=None) -> NDArray:
+    def _annotated_enface(self, features=None, max_height=320, alpha=0.5) -> NDArray:
         image = self.image
-        masks = [annotation.images.get(0, None) for annotation in self.annotations.values()]
-        annotated_image = overlay_masks(image, masks, feature_names=self.annotations.keys(), alpha=0.5)
+        masks = [annotation.images[0] for annotation in self.annotations.values()]
+        annotated_image = overlay_masks(image, masks, feature_names=self.annotations.keys(), max_height=max_height, alpha=alpha)
         return annotated_image # Should maybe convert to PIL image
     
     def _build_display_widget(self):
