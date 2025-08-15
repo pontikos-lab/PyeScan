@@ -7,7 +7,9 @@ from .metric import Metric
 
 T = TypeVar('T')
 Meta = Annotated[T, "meta"]
-Stat = Annotated[T, "stat"] 
+Stat = Annotated[T, "stat"]
+MaskStat = Annotated[T, "stat"] 
+ImgStat = Annotated[T, "stat"] 
 Pred = Annotated[T, "pred"]
 Spec = Annotated[T, "spec"]
 

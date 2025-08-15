@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pyescan',
-    version='0.0.1',
+    version='0.0.2',
     description='A package for dealing with retinal images exported by Private Eye',
     author='William Woof',
     author_email='awwoof@hotmail.com',
@@ -16,10 +16,11 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'summarise_pe_export = pyescan.tools.cli:get_pe_export_summary_cli',
+            'summarise_ce_export = pyescan.tools.cli:get_ce_export_summary_cli',
             'summarise_dataset = pyescan.tools.cli:summarise_dataset_cli',
             'run_function_on_csv = pyescan.tools.cli:run_function_on_csv_cli',
             'run_function_over_csv = pyescan.tools.cli:run_function_over_csv_cli',
+            'run_metric = pyescan.tools.cli:run_metric_csv_cli',
             'narrow_to_wide = pyescan.tools.cli:narrow_to_wide_cli'
         ],
     },

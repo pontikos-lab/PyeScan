@@ -30,7 +30,7 @@ class MetricProcessor:
         # Check if all returns already exist
         return_names = self._generate_return_names(metric, params)
         if all(self._stat_exists(r, entry_data, cache) for r in return_names):
-            return # No need to compute anything
+            return cache # No need to compute anything
         
         if 'computed_metrics' in cache:
             cache['computed_metrics'].append((metric.name, params))
@@ -46,7 +46,7 @@ class MetricProcessor:
             if not self._stat_exists(requirement, entry_data, cache):
                 targ_metric, targ_params = self._resolve_dependency_stat(requirement)
                 if targ_metric is None:
-                    raise ValueError(f"No metric found to compute {requirement}")
+                    raise ValueError(f"No metric found to compute {requirement} (required by {metric})")
                 else:
                     self._process_metric(entry_data, targ_metric, targ_params, cache=cache)
             
@@ -102,6 +102,16 @@ class MetricProcessor:
             
         return template
     
+    def _try_get_param_type(self, param_pattern):
+        if param_pattern == "int":
+            return '\b(-?\d+)\b'
+        elif param_pattern == "float":
+            return '(-?\d+(?:\.\d+)?)'
+        elif param_pattern == "str":
+            return '([A-Za-z]+)'
+        else:
+            return param_pattern
+    
     def _check_template_match(self, stat_name: str, template: str) -> Tuple[bool, Optional[Dict[str, Union[str, bool]]]]:
         """
         Check if a statistic name matches a template and extract parameters.
@@ -132,9 +142,14 @@ class MetricProcessor:
 
             # Handle parameter or optional section
             if match.group(1):  # Regular parameter <param>
-                param_name = match.group(1)
+                param_text = match.group(1)
+                if ":" in param_text:
+                    param_name, param_pattern = param_text.split(":")
+                    param_pattern = self._try_get_param_type(param_pattern)
+                else:
+                    param_name, param_pattern = param_text, r"([^_]+)"
                 param_names.append(param_name)
-                parts.append(("param", param_name))
+                parts.append(("param", param_name, param_pattern))
             else:  # Optional section text?<param>
                 text = match.group(2)
                 param_name = match.group(3)
@@ -152,7 +167,8 @@ class MetricProcessor:
             if part_type == "literal":
                 regex_pattern += re.escape(part_data[0])
             elif part_type == "param":
-                regex_pattern += r"([^_]+)"
+                param_name, param_pattern = part_data
+                regex_pattern += param_pattern #r"([^_]+)"
             elif part_type == "optional":
                 text, _ = part_data
                 if regex_pattern.endswith("_"):
@@ -160,7 +176,7 @@ class MetricProcessor:
                 else:
                     regex_pattern += f"({re.escape(text)})?"
 
-        regex_pattern += "$"  # End of string
+        regex_pattern += "$" # End of string
 
         # Try to match
         match = re.match(regex_pattern, stat_name)

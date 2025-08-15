@@ -14,7 +14,7 @@ def _flatten_dict(dict_in, name=""):
         dict_out[name] = dict_in
     return dict_out
 
-def _process_pe_metadata(metadata, identifier_dict, skip_image_level=False):
+def _process_ce_metadata(metadata, identifier_dict, skip_image_level=False):
     # Takes metadata json format and processes into individual rows
     # identifier dict is mapping to uniquely identify scan (e.g. from file structure)
     
@@ -44,8 +44,10 @@ def _process_pe_metadata(metadata, identifier_dict, skip_image_level=False):
         scan_data['source_id'] = scan['source_id']
 
         scan_data['number_of_images'] = len(scan['contents'])
-
-        for attr in ['size', 'dimensions_mm', 'resolutions_mm']:
+        
+        scan_data['scan_width_px'] = scan['size']['width']
+        scan_data['scan_height_px'] = scan['size']['height']
+        for attr in ['dimensions_mm', 'resolutions_mm']:
             scan_data.update(_flatten_dict(scan[attr], attr))
 
         if skip_image_level:
@@ -71,7 +73,7 @@ def _process_pe_metadata(metadata, identifier_dict, skip_image_level=False):
 
 
 # TODO: Break into functions for parsing all the metadata, then can join with images table 
-def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True, skip_image_level=False):
+def get_ce_export_summary(export_location, file_structure="pat/sdb", merged=True, skip_image_level=False):
     import json
     import pandas as pd
     import tqdm
@@ -95,7 +97,7 @@ def get_pe_export_summary(export_location, file_structure="pat/sdb", merged=True
 
         with open(os.path.join(dirpath, 'metadata.json'), 'r') as f:
             metadata = json.load(f)
-            scan_records.extend(_process_pe_metadata(metadata, file_structure_dict, skip_image_level))
+            scan_records.extend(_process_ce_metadata(metadata, file_structure_dict, skip_image_level))
 
         for filename in filenames:
 
@@ -153,6 +155,8 @@ def structure_to_regex(structure_pattern):
         lambda match: f"(?P<{match.group(1)}>{match.group(2) or '[^/]*?'})",
         escaped_structure,
     )
+    
+    regex_pattern = regex_pattern + '$' # Fix for End-Of-Strin
     
     return regex_pattern
     

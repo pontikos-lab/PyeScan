@@ -151,8 +151,8 @@ Main items:
 - Proper documentation (+ Linting)
 - Proper tests
 - Develop+test running metrics on PyeScan scan objects
-- Type annotations/hints
-- Rendering of annotations on enface with contours/cloropleth for thickness
+- ~~Type annotations/hints~~
+- ~~Rendering of annotations on enface with contours/cloropleth for thickness~~
 - ~~Annotations/masks~~ (Partially) Done!
 - requirements.txt
 - Port over functionality from PEExportBase

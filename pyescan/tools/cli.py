@@ -1,15 +1,46 @@
 import click
 import os
 
+class ClickKeyValueType(click.ParamType):
+    name = "key=value"
+    
+    def convert(self, value, param, ctx):
+        try:
+            key, val = value.split('=', 1)
+            return (key, val)
+        except ValueError:
+            self.fail(f'{value!r} is not a valid key=value pair', param, ctx)
+
+
+class ClickDictParamType(click.ParamType):
+    name = "dict"
+    
+    def convert(self, value, param, ctx):
+        if isinstance(value, dict):
+            return value
+            
+        config_dict = {}
+        pairs = value.split(',') if ',' in value else [value]
+        
+        for pair in pairs:
+            try:
+                key, val = pair.split('=', 1)
+                config_dict[key.strip()] = val.strip()
+            except ValueError:
+                self.fail(f'{pair!r} is not a valid key=value pair', param, ctx)
+        
+        return config_dict
+
+
 @click.command()
 @click.argument('export_location', type=click.Path(exists=True), required=True)
 @click.argument('output_csv', type=click.Path(), default=None, required=False)
 @click.option('--file_structure', type=str, default='pat/sdb', help='File structure gias list of names separated by / (default: pat/sdb).')
 @click.option('--skip_image_level/--include-image-level', default=False, help='Skip image level information for faster parsing (default: False).')
-def get_pe_export_summary_cli(export_location, output_csv, file_structure="pat/sdb", merged=True, skip_image_level=False):
-    from .dataset_utils import get_pe_export_summary
+def get_ce_export_summary_cli(export_location, output_csv, file_structure="pat/sdb", merged=True, skip_image_level=False):
+    from .dataset_utils import get_ce_export_summary
     
-    df = get_pe_export_summary(
+    df = get_ce_export_summary(
         export_location,
         file_structure=file_structure,
         skip_image_level=skip_image_level
@@ -18,14 +49,13 @@ def get_pe_export_summary_cli(export_location, output_csv, file_structure="pat/s
     if output_csv:
         # If output_location is provided, save the DataFrame to the specified location
         df.to_csv(output_csv, index=False)
-        click.echo(f"Result saved to {output_location}")
+        click.echo(f"Result saved to {output_csv}")
     else:
         # If output_location is not provided, save to scans_folder with a default filename
         default_output = os.path.join(export_location, "metadata_summary.csv")
         df.to_csv(default_output, index=False)
 
 
-        
 @click.command()
 @click.argument('target_location', type=click.Path(exists=True), required=True)
 @click.argument('output_csv', type=click.Path(), required=True)
@@ -36,8 +66,8 @@ def summarise_dataset_cli(target_location, output_csv, format):
     df = summarise_dataset(target_location, structure=format)
     df.to_csv(output_csv, index=False)
     click.echo(f"Result saved to {output_csv}")
-    
-    
+
+
 @click.command()
 @click.argument('function', type=str)
 @click.argument('csv_file', type=click.Path(exists=True))
@@ -76,7 +106,6 @@ def run_function_on_csv_cli(csv_file, function, output_csv=None, skip_prompt=Fal
     click.echo(f"Result saved to {output_csv}")
 
 
-      
 @click.command()
 @click.argument('function', type=str)
 @click.argument('csv_file', type=click.Path(exists=True))
@@ -135,6 +164,45 @@ def run_function_over_csv_cli(csv_file, function, output_csv=None, column_headin
     
     # Run function over dataframe
     result_df = run_function_on_dataframe(df, function_to_apply, column_headings, threaded)
+    
+    # Save the result to a CSV file
+    result_df.to_csv(output_csv, index=False)
+    click.echo(f"Result saved to {output_csv}")
+
+
+@click.command()
+@click.argument('stats', type=str)
+@click.argument('csv_file', type=click.Path(exists=True))
+@click.argument('output_csv', type=click.Path(), default=None, required=False)
+@click.option('--mapping', type=ClickDictParamType(),
+              help='Mapping from CSV column headings to internal ')
+@click.option('--suffix', '-s', type=click.STRING, help='Suffix to append to added column names.')
+@click.option('--intermediates', is_flag=True, help='Save intermediate metrics calculated in process.')
+@click.option('--threaded', is_flag=True, help='Use threading (recommended, requires pathos).')
+@click.option('--skip_prompt', '-y', is_flag=True, help='Skip confirmation.')
+def run_metric_csv_cli(csv_file, stats, output_csv=None, mapping={}, suffix=None, intermediates=False, threaded=False, skip_prompt=False):
+    """
+    Runs the specified function on each row of the specified CSV and appends the result as additional columns.
+    If output_csv is not specified this will default to overwriting the input CSV.
+    Function should accept a row parameter, where columns can be accessed by row.column_name, and output a single value / tuple of values.
+    """
+    if not output_csv:
+        confirmation = skip_prompt or click.confirm(f'No output location specified. Are you sure you want to overwrite {csv_file}?')
+        if confirmation:
+            output_csv = csv_file
+        else:
+            click.echo("Operation aborted.")
+            return
+
+    import pandas as pd
+    from ..metrics.helpers import run_on_dataframe
+    
+    # Load CSV into a DataFrame
+    df = pd.read_csv(csv_file)
+    
+    # Run function over dataframe
+    stats = [s.strip() for s in stats.split(',')]
+    result_df = run_on_dataframe(df, stats, mapping, suffix=suffix, named_only=not intermediates, auto_merge=True, threaded=threaded)
     
     # Save the result to a CSV file
     result_df.to_csv(output_csv, index=False)
